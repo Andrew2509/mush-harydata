@@ -157,7 +157,7 @@ Route::prefix('dash/')->middleware(['xss',  'sanitize',])->group(function () {
 });
 
 Route::middleware(['auth', 'check.role'])->group(function () {
-    Route::get('/dashboard',                                                     [DashboardController::class, 'create'])->name('dashboard');
+    Route::get('/dashboard',                                                     [DashboardController::class, 'create'])->name('admin.dashboard');
     Route::get('/pesanan',                                                       [AdminOrder::class, 'create'])->name('pesanan');
     Route::get('/latency',                                                       [AdminOrder::class, 'latency'])->name('latency');
     Route::get('/order-status/{order_id}/{status}',                              [AdminOrder::class, 'update']);

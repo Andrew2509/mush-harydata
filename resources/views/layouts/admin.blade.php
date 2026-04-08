@@ -1083,7 +1083,7 @@ a.bg-primary:hover, a.bg-primary:focus {
 
         <aside id="layout-menu" class="layout-menu menu-vertical menu bg-menu-theme">
           <div class="app-brand demo" style="padding: 1.2rem 1.5rem;">
-            <a href="{{ route('dashboard') }}" class="app-brand-link" style="display:flex;align-items:center;gap:10px;text-decoration:none;">
+            <a href="{{ route('admin.dashboard') }}" class="app-brand-link" style="display:flex;align-items:center;gap:10px;text-decoration:none;">
                 <img src="{{ ENV('APP_IMAGE') }}" alt="Logo" style="width:36px;height:36px;border-radius:8px;border:1px solid rgba(0,240,255,0.2);box-shadow:0 0 10px rgba(0,240,255,0.15);">
                 <span style="font-family:'Orbitron',sans-serif;font-size:0.9rem;font-weight:700;color:#00f0ff;text-shadow:0 0 10px rgba(0,240,255,0.3);letter-spacing:1px;">ADMIN</span>
             </a>
@@ -1101,7 +1101,7 @@ a.bg-primary:hover, a.bg-primary:focus {
 
             {{-- Dashboard --}}
             <li class="menu-item {{ request()->is('dashboard') ? 'active' : '' }}">
-                <a href="{{ route('dashboard') }}" class="menu-link">
+                <a href="{{ route('admin.dashboard') }}" class="menu-link">
                     <i class="menu-icon fas fa-tachometer-alt"></i>
                     <div>Dashboard</div>
                 </a>

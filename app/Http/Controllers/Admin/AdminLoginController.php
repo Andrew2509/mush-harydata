@@ -59,7 +59,7 @@ class AdminLoginController extends Controller
             $user = Auth::user();
 
             if ($user->role === 'Admin') {
-                return redirect()->intended(route('dashboard'));
+                return redirect()->intended(route('admin.dashboard'));
             } else {
                 Auth::logout();
                 return redirect()->route('adminlogin')->withErrors(['error' => 'Username / password mismatch']);
