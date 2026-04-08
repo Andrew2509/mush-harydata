@@ -1,7 +1,7 @@
 @extends('layouts.user')
 
 @section('custom_style')
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script src="{{ asset('js/tailwind-cdn.js') }}"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
 <script id="tailwind-config">
     tailwind.config = {

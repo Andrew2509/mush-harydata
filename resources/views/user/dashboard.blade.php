@@ -20,7 +20,7 @@
         overflow: hidden;
     }
 </style>
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script src="{{ asset('js/tailwind-cdn.js') }}"></script>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
 <script>
