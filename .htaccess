@@ -1,27 +1,8 @@
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
-    # Handle Authorization Header
-    RewriteCond %{HTTP:Authorization} .
-    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
-
-    # Redirect Trailing Slashes If Not A Folder...
-    RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteCond %{REQUEST_URI} (.+)/$
-    RewriteRule ^ %1 [L,R=301]
-
-    # Redirect to HTTPS (Optional but recommended)
-    # RewriteCond %{HTTPS} off
-    # RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
-
-    # Send Requests To Front Controller...
-    RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteRule ^ index.php [L]
-</IfModule>
-
-<IfModule mod_negotiation.c>
-    Options -MultiViews -Indexes
+    # Redirection to public folder
+    RewriteRule ^(.*)$ public/$1 [L]
 </IfModule>
 
 # Security: Block direct access to sensitive files
@@ -35,20 +16,3 @@
     Order Allow,Deny
     Deny from all
 </Files>
-
-# Performance Tuning & MIME Types
-<IfModule mod_mime.c>
-    AddType image/webp .webp
-    AddType image/avif .avif
-</IfModule>
-
-<IfModule mod_deflate.c>
-    AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css application/javascript application/x-javascript application/json image/svg+xml image/webp image/avif
-</IfModule>
-
-<IfModule mod_headers.c>
-    Header always set X-Content-Type-Options "nosniff"
-    Header always set X-Frame-Options "SAMEORIGIN"
-    Header always set X-XSS-Protection "1; mode=block"
-    Header unset X-Powered-By
-</IfModule>
