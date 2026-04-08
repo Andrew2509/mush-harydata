@@ -213,7 +213,7 @@ Route::middleware(['auth', 'check.role'])->group(function () {
     
     Route::resources([ 'paket' => PaketController::class, 'paket-layanan' => PaketLayananController::class]);
     Route::post('paket-layanan-get-layanan',                                     [PaketLayananController::class, 'get_layanan'])->name('paket-layanan.get-layanan');
-    Route::delete('/paket-layanan/destroy',                                      [PaketLayananController::class, 'destroy'])->name('paket-layanan.destroy');
+    Route::delete('/paket-layanan/destroy',                                      [PaketLayananController::class, 'destroy'])->name('paket-layanan.bulk-destroy');
     Route::get('/method',                                                        [MethodController::class, 'create'])->name('method');
     Route::post('/method',                                                       [MethodController::class, 'store'])->name('method.post');
     Route::get('/method/hapus/{id}',                                             [MethodController::class, 'delete'])->name('method.delete');

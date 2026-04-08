@@ -184,7 +184,7 @@
             </div>
             <div class="modal-body">
                 <div class="table-responsive">
-                    <form action="{{ route('paket-layanan.destroy') }}" method="post" id="bulkDeleteForm">
+                    <form action="{{ route('paket-layanan.bulk-destroy') }}" method="post" id="bulkDeleteForm">
                         @csrf
                         @method('DELETE')
                         <table class="table">
