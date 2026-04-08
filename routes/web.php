@@ -193,7 +193,7 @@ Route::middleware(['auth', 'check.role'])->group(function () {
     Route::post('/kategori',                                                     [KategoriController::class, 'store'])->name('kategori.post');
     Route::get('/kategori/hapus/{id}',                                           [KategoriController::class, 'delete'])->name('kategori.delete');
     Route::get('/kategori-status/{id}/{status}',                                 [KategoriController::class, 'update'])->name('kategori.update');
-    Route::post('/kategori/update',                                              [KategoriController::class, 'patch'])->name('kategori.detail.update');
+    Route::post('/kategori/update',                                              [KategoriController::class, 'patch'])->name('kategori.update.patch');
     Route::get('/kategori/{id}/detail',                                          [KategoriController::class, 'detail'])->name('kategori.detail');
     Route::post('/kategori/{id}/detail',                                         [KategoriController::class, 'patch'])->name('kategori.detail.update');
     Route::get('/produk/get/{provider?}',                                        [ProdukController::class, 'get'])->name('produk.get');
@@ -217,7 +217,7 @@ Route::middleware(['auth', 'check.role'])->group(function () {
     Route::get('/method',                                                        [MethodController::class, 'create'])->name('method');
     Route::post('/method',                                                       [MethodController::class, 'store'])->name('method.post');
     Route::get('/method/hapus/{id}',                                             [MethodController::class, 'delete'])->name('method.delete');
-    Route::post('/method/update',                                                [MethodController::class, 'patch'])->name('method.detail.update');
+    Route::post('/method/update',                                                [MethodController::class, 'patch'])->name('method.update.patch');
     Route::get('/method/{id}/detail',                                            [MethodController::class, 'detail'])->name('method.detail');
     Route::post('/method/{id}/detail',                                           [MethodController::class, 'patch'])->name('method.detail.update');
     Route::get('/member',                                                        [MemberController::class, 'create'])->name('member');
