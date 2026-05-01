@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Session;
 use App\Models\Method;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\digiFlazzController;
 use App\Http\Controllers\provider\aoshi\AoshiController;
 use App\Http\Controllers\ApiCheckController;
@@ -63,7 +64,7 @@ class OrderController extends Controller
             ->join('pembelians', 'ratings.rating_id', '=', 'pembelians.order_id')
             ->join('pembayarans', 'ratings.rating_id', '=', 'pembayarans.order_id')
             ->leftJoin('kategoris', 'ratings.kategori_id', '=', 'kategoris.id')
-            ->select(
+            ->select([
                 'ratings.bintang', 
                 'ratings.comment', 
                 'ratings.id', 
@@ -72,7 +73,7 @@ class OrderController extends Controller
                 'pembelians.layanan', 
                 'pembayarans.no_pembeli',
                 'kategoris.nama AS kategori_nama'
-            )
+            ])
             ->orderByDesc('ratings.id')
             ->limit(10)
             ->get();
@@ -81,7 +82,7 @@ class OrderController extends Controller
         $totalReviews = DB::table('ratings')->count();
         $averageRating = DB::table('ratings')->avg('bintang') ?? 0;
         $totalRatingsCount = DB::table('ratings')
-            ->select('bintang', DB::raw('count(*) as count'))
+            ->select(['bintang', DB::raw('count(*) as count')])
             ->groupBy('bintang')
             ->pluck('count', 'bintang');
         
@@ -172,20 +173,20 @@ class OrderController extends Controller
             'totalRatingsCount' => $totalRatingsCount,
             'satisfactionPercentage' => $satisfactionPercentage,
             'flashsale' => $flashsale,
-            'pay_method' => \App\Models\Method::all(),
+            'pay_method' => Method::all(),
             'banner_topup' => Berita::whereIn('tipe', ['banner_topup', 'banner_beranda', 'banner'])->latest()->first(),
             'banner_topup_mobile' => Berita::whereIn('tipe', ['banner_topup_mobile', 'banner_beranda_mobile'])->latest()->first(),
-            'recent_transactions' => \App\Models\Pembelian::join('layanans', 'pembelians.layanan', '=', 'layanans.layanan')
+            'recent_transactions' => Pembelian::join('layanans', 'pembelians.layanan', '=', 'layanans.layanan')
                 ->where('layanans.kategori_id', $data->id)
                 ->whereIn('pembelians.status', ['Sukses', 'Success'])
-                ->select('pembelians.*')
+                ->select(['pembelians.*'])
                 ->latest('pembelians.created_at')
                 ->limit(5)
                 ->get(),
-            'total_users' => \App\Models\User::count(),
-            'total_games' => \App\Models\Kategori::where('status', 'active')->count(),
-            'total_products' => \App\Models\Layanan::count(),
-            'total_transactions' => \App\Models\Pembelian::count(),
+            'total_users' => User::count(),
+            'total_games' => Kategori::where('status', 'active')->count(),
+            'total_products' => Layanan::count(),
+            'total_transactions' => Pembelian::count(),
         ]);
     }
 
@@ -393,17 +394,17 @@ class OrderController extends Controller
 
             try {
                 if ($provider == 'digiflazz') {
-                    $digi = new \App\Http\Controllers\digiFlazzController;
+                    $digi = new digiFlazzController;
                     $resSaldo = $digi->cekSaldo();
                     $currentSaldo = $resSaldo['data']['deposit'] ?? null;
                 } elseif (in_array($provider, ['topupedia', 'bangjeff', 'aoshi'])) {
                     $ctrl = null;
                     if ($provider == 'topupedia') {
-                        $ctrl = new \App\Http\Controllers\provider\topupedia\TopupediaController;
+                        $ctrl = new TopupediaController;
                     } elseif ($provider == 'bangjeff') {
-                        $ctrl = new \App\Http\Controllers\provider\bangjeff\BangJeffController;
+                        $ctrl = new BangJeffController;
                     } elseif ($provider == 'aoshi') {
-                        $ctrl = new \App\Http\Controllers\provider\aoshi\AoshiController;
+                        $ctrl = new AoshiController;
                     }
                     
                     if ($ctrl) {
@@ -439,21 +440,14 @@ class OrderController extends Controller
             if(isset($request->voucher)){
                 $voucher = Voucher::where('kode', $request->voucher)->first();
                 
-                if(!$voucher){
-                    $dataLayanan->harga = $dataLayanan->harga;
-                }else{
-                    if($voucher->stock == 0){
-                        $dataLayanan->harga = $dataLayanan->harga;
-                    }else{
-                        $potongan = $dataLayanan->harga * ($voucher->promo / 100);
-                        if($potongan > $voucher->max_potongan){
-                            $potongan = $voucher->max_potongan;
-                        }
-                        
-                        $dataLayanan->harga = $dataLayanan->harga - $potongan;
+                if($voucher && $voucher->stock > 0){
+                    $potongan = $dataLayanan->harga * ($voucher->promo / 100);
+                    if($potongan > $voucher->max_potongan){
+                        $potongan = $voucher->max_potongan;
                     }
+                    
+                    $dataLayanan->harga = $dataLayanan->harga - $potongan;
                 }
-                
             }
             
 
@@ -943,17 +937,17 @@ class OrderController extends Controller
 
         try {
             if ($provider == 'digiflazz') {
-                $digi = new \App\Http\Controllers\digiFlazzController;
+                $digi = new digiFlazzController;
                 $resSaldo = $digi->cekSaldo();
                 $currentSaldo = $resSaldo['data']['deposit'] ?? null;
             } elseif (in_array($provider, ['topupedia', 'bangjeff', 'aoshi'])) {
                 $ctrl = null;
                 if ($provider == 'topupedia') {
-                    $ctrl = new \App\Http\Controllers\provider\topupedia\TopupediaController;
+                    $ctrl = new TopupediaController;
                 } elseif ($provider == 'bangjeff') {
-                    $ctrl = new \App\Http\Controllers\provider\bangjeff\BangJeffController;
+                    $ctrl = new BangJeffController;
                 } elseif ($provider == 'aoshi') {
-                    $ctrl = new \App\Http\Controllers\provider\aoshi\AoshiController;
+                    $ctrl = new AoshiController;
                 }
                 
                 if ($ctrl) {
@@ -993,20 +987,14 @@ class OrderController extends Controller
         if(isset($request->voucher)){
             $voucher = Voucher::where('kode', $request->voucher)->first();
             
-            if(!$voucher){
-                $dataLayanan->harga = $dataLayanan->harga;
-            }else{
-                if($voucher->stock == 0){
-                    $dataLayanan->harga = $dataLayanan->harga;
-                }else{
-                    $potongan = $dataLayanan->harga * ($voucher->promo / 100);
-                    if($potongan > $voucher->max_potongan){
-                        $potongan = $voucher->max_potongan;
-                    }
-                    
-                    $dataLayanan->harga = round($dataLayanan->harga - $potongan);
-                    $voucher->decrement('stock');
+            if($voucher && $voucher->stock > 0){
+                $potongan = $dataLayanan->harga * ($voucher->promo / 100);
+                if($potongan > $voucher->max_potongan){
+                    $potongan = $voucher->max_potongan;
                 }
+                
+                $dataLayanan->harga = round($dataLayanan->harga - $potongan);
+                $voucher->decrement('stock');
             }
         }  
         
