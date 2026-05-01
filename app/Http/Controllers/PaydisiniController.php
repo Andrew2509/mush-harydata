@@ -118,12 +118,19 @@ class PaydisiniController extends Controller
 
                 if (isset($responseData['data'])) {
                     $data = $responseData['data'];
-                    $no_pembayaran = $data['qrcode_url'] ?? 
-                                     $data['checkout_url'] ?? 
-                                     $data['checkout_url_beta'] ?? 
-                                     $data['checkout_url_v2'] ?? 
-                                     $data['checkout_url_v3'] ?? 
-                                     '';
+                    $no_pembayaran = $data['qrcode_url'] ?? '';
+                    
+                    if (empty($no_pembayaran) && !empty($data['qr_content'])) {
+                        $no_pembayaran = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=" . urlencode($data['qr_content']);
+                    }
+                    
+                    if (empty($no_pembayaran)) {
+                        $no_pembayaran = $data['checkout_url'] ?? 
+                                         $data['checkout_url_beta'] ?? 
+                                         $data['checkout_url_v2'] ?? 
+                                         $data['checkout_url_v3'] ?? 
+                                         '';
+                    }
 
                     if (empty($no_pembayaran)) {
                         return response()->json([

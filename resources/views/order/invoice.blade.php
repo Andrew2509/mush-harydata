@@ -126,10 +126,10 @@
                 <button onclick="Swal.fire('Informasi', 'Silakan ikuti instruksi yang dikirimkan ke nomor WhatsApp Anda atau hubungi CS kami untuk panduan pembayaran.', 'info')" class="btn-outline-blue py-3 rounded-xl font-bold text-sm transition-all">Cara Pembayaran</button>
                 @if($data->status_pembayaran == "Belum Lunas")
                     @php $metode = Str::upper($data->metode_pembayaran); @endphp
-                    @if($metode == "QRIS" || $metode == "QRISREALTIME" || $metode == "QRISC" || $metode == "11" || $metode == "QRISOP" || $metode == "23" || $metode == "QRIS_CUSTOM" || $metode == "QRIS2" || str_contains($data->no_pembayaran, 'qrcode.php') || str_contains($data->no_pembayaran, 'static.tripay.co.id/qr/'))
+                    @if(($metode == "QRIS" || $metode == "QRISREALTIME" || $metode == "QRISC" || $metode == "11" || $metode == "QRISOP" || $metode == "23" || $metode == "QRIS_CUSTOM" || $metode == "17" || $metode == "20" || $metode == "QRIS2" || str_contains($data->no_pembayaran, 'qrcode.php') || str_contains($data->no_pembayaran, 'static.tripay.co.id/qr/') || str_contains($data->no_pembayaran, 'qrserver.com')) && !str_contains($data->no_pembayaran, 'checkout'))
                         <button onclick="showQR()" class="btn-filled-blue py-3 rounded-xl font-bold text-sm transition-all">Lanjutkan Pembayaran</button>
                     @else
-                        <a href="{{ $data->no_pembayaran }}" class="btn-filled-blue py-3 rounded-xl font-bold text-sm transition-all text-center">Lanjutkan Pembayaran</a>
+                        <a href="{{ $data->no_pembayaran }}" target="_blank" class="btn-filled-blue py-3 rounded-xl font-bold text-sm transition-all text-center">Lanjutkan Pembayaran</a>
                     @endif
                 @else
                     <button class="bg-green-500 text-white py-3 rounded-xl font-bold text-sm cursor-default">Pembayaran Berhasil</button>
