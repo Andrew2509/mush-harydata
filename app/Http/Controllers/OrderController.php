@@ -370,16 +370,57 @@ class OrderController extends Controller
             // cek data
             if(Auth::check()){
                 if(Auth::user()->role == "Member"){
-                    $dataLayanan = Layanan::where('id', $request->service)->select('harga_member AS harga', 'kategori_id', 'is_flash_sale', 'expired_flash_sale', 'harga_flash_sale', 'stock_flash_sale')->first();
+                    $dataLayanan = Layanan::where('id', $request->service)->select('provider', 'profit_member AS profit', 'harga_member AS harga', 'kategori_id', 'is_flash_sale', 'expired_flash_sale', 'harga_flash_sale', 'stock_flash_sale')->first();
                 }else if(Auth::user()->role == "Platinum"){
-                    $dataLayanan = Layanan::where('id', $request->service)->select('harga_platinum AS harga', 'kategori_id', 'is_flash_sale', 'expired_flash_sale', 'harga_flash_sale', 'stock_flash_sale')->first();
+                    $dataLayanan = Layanan::where('id', $request->service)->select('provider', 'profit_platinum AS profit', 'harga_platinum AS harga', 'kategori_id', 'is_flash_sale', 'expired_flash_sale', 'harga_flash_sale', 'stock_flash_sale')->first();
                 }else if(Auth::user()->role == "Gold" || Auth::user()->role == "Admin"){
-                    $dataLayanan = Layanan::where('id', $request->service)->select('harga_gold AS harga', 'kategori_id', 'is_flash_sale', 'expired_flash_sale', 'harga_flash_sale', 'stock_flash_sale')->first();
+                    $dataLayanan = Layanan::where('id', $request->service)->select('provider', 'profit_gold AS profit', 'harga_gold AS harga', 'kategori_id', 'is_flash_sale', 'expired_flash_sale', 'harga_flash_sale', 'stock_flash_sale')->first();
                 }
             }else{
-                $dataLayanan = Layanan::where('id', $request->service)->select('harga AS harga', 'kategori_id', 'is_flash_sale', 'expired_flash_sale', 'harga_flash_sale', 'stock_flash_sale')->first();
+                $dataLayanan = Layanan::where('id', $request->service)->select('provider', 'profit', 'harga AS harga', 'kategori_id', 'is_flash_sale', 'expired_flash_sale', 'harga_flash_sale', 'stock_flash_sale')->first();
             }
             if (!$dataLayanan) return response()->json(['status' => false, 'data' => 'Detail layanan tidak ditemukan']);
+
+            // Cek Saldo Provider
+            $provider = $dataLayanan->provider;
+            $profitPercent = (float)($dataLayanan->profit ?? 0) / 100;
+            $hargaAcuan = $dataLayanan->harga;
+            if($dataLayanan->is_flash_sale == 1 && $dataLayanan->expired_flash_sale >= date('Y-m-d H:i:s') && $dataLayanan->stock_flash_sale > 0){
+                $hargaAcuan = $dataLayanan->harga_flash_sale;
+            }
+            $estimasiHargaBeli = $hargaAcuan / (1 + $profitPercent);
+            $currentSaldo = null;
+
+            try {
+                if ($provider == 'digiflazz') {
+                    $digi = new \App\Http\Controllers\digiFlazzController;
+                    $resSaldo = $digi->cekSaldo();
+                    $currentSaldo = $resSaldo['data']['deposit'] ?? null;
+                } elseif (in_array($provider, ['topupedia', 'bangjeff', 'aoshi'])) {
+                    $ctrl = null;
+                    if ($provider == 'topupedia') {
+                        $ctrl = new \App\Http\Controllers\provider\topupedia\TopupediaController;
+                    } elseif ($provider == 'bangjeff') {
+                        $ctrl = new \App\Http\Controllers\provider\bangjeff\BangJeffController;
+                    } elseif ($provider == 'aoshi') {
+                        $ctrl = new \App\Http\Controllers\provider\aoshi\AoshiController;
+                    }
+                    
+                    if ($ctrl) {
+                        $resSaldo = $ctrl->balance();
+                        $currentSaldo = $resSaldo['data']['balance'] ?? null;
+                    }
+                }
+
+                if ($currentSaldo !== null && $currentSaldo < $estimasiHargaBeli) {
+                    return response()->json([
+                        'status' => false,
+                        'data' => 'Maaf, stok layanan ini sedang kosong (Saldo Provider Menipis). Mohon hubungi admin atau pilih produk lain.'
+                    ]);
+                }
+            } catch (\Exception $e) {
+                \Log::error("Gagal pengecekan saldo provider ($provider) di confirm: " . $e->getMessage());
+            }
             if($dataLayanan->is_flash_sale == 1 && $dataLayanan->expired_flash_sale >= date('Y-m-d H:i:s') && $dataLayanan->stock_flash_sale > 0){
             
                 $dataLayanan->harga = $dataLayanan->harga_flash_sale;
@@ -888,6 +929,47 @@ class OrderController extends Controller
                 'status' => false,
                 'data' => 'Layanan tidak ditemukan'
             ]);
+        }
+
+        // Cek Saldo Provider sebelum melanjutkan
+        $provider = $dataLayanan->provider;
+        $profitPercent = (float)($dataLayanan->profit ?? 0) / 100;
+        $hargaAcuan = $dataLayanan->harga;
+        if($dataLayanan->is_flash_sale == 1 && $dataLayanan->expired_flash_sale >= date('Y-m-d H:i:s') && $dataLayanan->stock_flash_sale > 0){
+            $hargaAcuan = $dataLayanan->harga_flash_sale;
+        }
+        $estimasiHargaBeli = $hargaAcuan / (1 + $profitPercent);
+        $currentSaldo = null;
+
+        try {
+            if ($provider == 'digiflazz') {
+                $digi = new \App\Http\Controllers\digiFlazzController;
+                $resSaldo = $digi->cekSaldo();
+                $currentSaldo = $resSaldo['data']['deposit'] ?? null;
+            } elseif (in_array($provider, ['topupedia', 'bangjeff', 'aoshi'])) {
+                $ctrl = null;
+                if ($provider == 'topupedia') {
+                    $ctrl = new \App\Http\Controllers\provider\topupedia\TopupediaController;
+                } elseif ($provider == 'bangjeff') {
+                    $ctrl = new \App\Http\Controllers\provider\bangjeff\BangJeffController;
+                } elseif ($provider == 'aoshi') {
+                    $ctrl = new \App\Http\Controllers\provider\aoshi\AoshiController;
+                }
+                
+                if ($ctrl) {
+                    $resSaldo = $ctrl->balance();
+                    $currentSaldo = $resSaldo['data']['balance'] ?? null;
+                }
+            }
+
+            if ($currentSaldo !== null && $currentSaldo < $estimasiHargaBeli) {
+                return response()->json([
+                    'status' => false,
+                    'data' => 'Maaf, stok layanan ini sedang kosong (Saldo Provider Menipis). Mohon hubungi admin atau pilih produk lain.'
+                ]);
+            }
+        } catch (\Exception $e) {
+            \Log::error("Gagal pengecekan saldo provider ($provider) di store: " . $e->getMessage());
         }
         
         if($dataLayanan->is_flash_sale == 1 && $dataLayanan->expired_flash_sale >= date('Y-m-d H:i:s') && $dataLayanan->stock_flash_sale > 0){
