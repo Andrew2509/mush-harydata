@@ -34,6 +34,7 @@ class FirebaseAuthController extends Controller
                 'name' => $request->name,
                 'email' => $request->email,
                 'username' => $username,
+                'no_wa' => '', // Initialize with empty string to avoid "no default value" error
                 'password' => Hash::make(Str::random(16)),
                 'role' => 'Member',
                 'balance' => 0,
