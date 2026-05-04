@@ -538,53 +538,60 @@
     const auth = firebase.auth();
     const provider = new firebase.auth.GoogleAuthProvider();
 
-    // Handle the redirect result when the page loads
-    auth.getRedirectResult()
-        .then((result) => {
-            if (result.user) {
-                const user = result.user;
-                
-                // Show loading state while processing
-                const btn = document.getElementById('btn-google-register');
-                btn.disabled = true;
-                btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Memproses Akun...';
+    // Fungsi untuk memproses registrasi/login ke backend Laravel
+    function processRegistrationToBackend(user) {
+        const btn = document.getElementById('btn-google-register');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Memproses Akun...';
 
-                // Send to backend
-                $.ajax({
-                    url: "{{ route('firebase.google.login') }}",
-                    method: "POST",
-                    data: {
-                        _token: "{{ csrf_token() }}",
-                        email: user.email,
-                        name: user.displayName,
-                        uid: user.uid
-                    },
-                    success: function(response) {
-                        if (response.success) {
-                            window.location.href = response.redirect;
-                        } else {
-                            alert('Gagal daftar: ' + (response.message || 'Terjadi kesalahan'));
-                            btn.disabled = false;
-                            btn.innerHTML = '<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google"> Daftar dengan Google';
-                        }
-                    },
-                    error: function(xhr) {
-                        alert('Gagal daftar ke server. Silakan coba lagi.');
-                        btn.disabled = false;
-                        btn.innerHTML = '<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google"> Daftar dengan Google';
-                    }
-                });
+        $.ajax({
+            url: "{{ route('firebase.google.login') }}",
+            method: "POST",
+            data: {
+                _token: "{{ csrf_token() }}",
+                email: user.email,
+                name: user.displayName,
+                uid: user.uid
+            },
+            success: function(response) {
+                if (response.success) {
+                    window.location.href = response.redirect;
+                } else {
+                    alert('Gagal daftar: ' + (response.message || 'Terjadi kesalahan'));
+                    resetRegisterButton();
+                }
+            },
+            error: function(xhr) {
+                alert('Gagal daftar ke server. Silakan coba lagi.');
+                resetRegisterButton();
             }
-        })
-        .catch((error) => {
-            console.error(error);
-            alert('Gagal autentikasi Google: ' + error.message);
         });
+    }
 
+    function resetRegisterButton() {
+        const btn = document.getElementById('btn-google-register');
+        btn.disabled = false;
+        btn.innerHTML = '<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google"> Daftar dengan Google';
+    }
+
+    // Gunakan Popup untuk pengalaman yang lebih "Langsung"
     document.getElementById('btn-google-register').addEventListener('click', function() {
         this.disabled = true;
-        this.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Menghubungkan...';
-        auth.signInWithRedirect(provider);
+        this.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Membuka Google...';
+        
+        auth.signInWithPopup(provider)
+            .then((result) => {
+                if (result.user) {
+                    processRegistrationToBackend(result.user);
+                }
+            })
+            .catch((error) => {
+                console.error(error);
+                if (error.code !== 'auth/popup-closed-by-user') {
+                    alert('Gagal autentikasi Google: ' + error.message);
+                }
+                resetRegisterButton();
+            });
     });
 
     const bgVideo = document.getElementById('video-bg');
