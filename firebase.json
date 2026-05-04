@@ -1,0 +1,17 @@
+{
+  "hosting": {
+    "site": "muslihin-c5b0f-db8a9",
+    "public": "public",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.php"
+      }
+    ]
+  }
+}

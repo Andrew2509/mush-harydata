@@ -1,0 +1,227 @@
+{
+	"info": {
+		"_postman_id": "b715bea9-1b05-4728-9e89-052c30c8b2c9",
+		"name": "Mustopup API - Full Workflow (Register to Pay & Fulfillment)",
+		"description": "Koleksi untuk pengujian alur lengkap: OTP -> Register -> Login -> Order -> Callback Tripay -> Callback Digiflazz",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "1. Authentication",
+			"item": [
+				{
+					"name": "Request OTP",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{ "key": "whatsapp", "value": "{{whatsapp}}", "type": "text" }
+							]
+						},
+						"url": { "raw": "{{baseUrl}}/id/send-otp", "host": ["{{baseUrl}}"], "path": ["id", "send-otp"] }
+					}
+				},
+				{
+					"name": "Verify OTP",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{ "key": "otp", "value": "123456", "type": "text" }
+							]
+						},
+						"url": { "raw": "{{baseUrl}}/id/verify-otp", "host": ["{{baseUrl}}"], "path": ["id", "verify-otp"] }
+					}
+				},
+				{
+					"name": "Register User",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{ "key": "name", "value": "Test User", "type": "text" },
+								{ "key": "username", "value": "testuser{{$randomInt}}", "type": "text" },
+								{ "key": "whatsapp", "value": "{{whatsapp}}", "type": "text" },
+								{ "key": "password", "value": "password123", "type": "text" },
+								{ "key": "password_confirmation", "value": "password123", "type": "text" }
+							]
+						},
+						"url": { "raw": "{{baseUrl}}/id/sign-up", "host": ["{{baseUrl}}"], "path": ["id", "sign-up"] }
+					}
+				},
+				{
+					"name": "Login",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{ "key": "username", "value": "testuser", "type": "text" },
+								{ "key": "password", "value": "password123", "type": "text" }
+							]
+						},
+						"url": { "raw": "{{baseUrl}}/id/sign-in", "host": ["{{baseUrl}}"], "path": ["id", "sign-in"] }
+					}
+				}
+			]
+		},
+		{
+			"name": "2. Order Process",
+			"item": [
+				{
+					"name": "Check Price (Ajax)",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{ "key": "nominal", "value": "123", "description": "ID Layanan (Layanan ID)", "type": "text" },
+								{ "key": "metode", "value": "TRIPAY", "type": "text" }
+							]
+						},
+						"url": { "raw": "{{baseUrl}}/id/harga", "host": ["{{baseUrl}}"], "path": ["id", "harga"] }
+					}
+				},
+				{
+					"name": "Confirm ID (Ajax Check)",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{ "key": "user_id", "value": "12345678", "type": "text" },
+								{ "key": "zone", "value": "1234", "type": "text" },
+								{ "key": "service", "value": "123", "type": "text" }
+							]
+						},
+						"url": { "raw": "{{baseUrl}}/id/konfirmasi-data", "host": ["{{baseUrl}}"], "path": ["id", "konfirmasi-data"] }
+					}
+				},
+				{
+					"name": "Submit Order (Checkout)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.order_id) {",
+									"    pm.collectionVariables.set(\"order_id\", jsonData.order_id);",
+									"    pm.collectionVariables.set(\"tripay_reference\", jsonData.reference);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{ "key": "user_id", "value": "12345678", "type": "text" },
+								{ "key": "zone", "value": "1234", "type": "text" },
+								{ "key": "service", "value": "123", "type": "text" },
+								{ "key": "payment_method", "value": "TRIPAY_QRIS", "type": "text" },
+								{ "key": "nomor", "value": "{{whatsapp}}", "type": "text" }
+							]
+						},
+						"url": { "raw": "{{baseUrl}}/id", "host": ["{{baseUrl}}"], "path": ["id"] }
+					}
+				}
+			]
+		},
+		{
+			"name": "3. Callback Simulation (Tripay & Digiflazz)",
+			"item": [
+				{
+					"name": "Simulate Tripay Payment (Callback)",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"const privateKey = pm.collectionVariables.get('tripayPrivateKey');",
+									"const payload = JSON.stringify({",
+									"    \"reference\": pm.collectionVariables.get('tripay_reference') || \"T123456789\",",
+									"    \"merchant_ref\": pm.collectionVariables.get('order_id') || \"ORD-123\",",
+									"    \"status\": \"PAID\"",
+									"});",
+									"const signature = CryptoJS.HmacSHA256(payload, privateKey).toString();",
+									"pm.request.body.raw = payload;",
+									"pm.request.headers.add({key: 'X-Callback-Signature', value: signature});",
+									"pm.request.headers.add({key: 'X-Callback-Event', value: 'payment_status'});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": { "mode": "raw", "raw": "" },
+						"url": { "raw": "{{baseUrl}}/tripay/callback", "host": ["{{baseUrl}}"], "path": ["tripay", "callback"] }
+					},
+					"description": "Simulasi ketika user sudah membayar di Tripay. Ini akan memicu sistem untuk mengubah status pesanan menjadi 'Proses' dan mengirim ke Digiflazz."
+				},
+				{
+					"name": "Simulate Digiflazz Fulfillment (Callback)",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Catatan: Signature Digiflazz biasanya dilewati (true || ...) di controller Anda untuk kemudahan testing",
+									"pm.request.headers.add({key: 'X-Digiflazz-Event', value: 'update'});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"data\": {\n    \"ref_id\": \"{{provider_order_id}}\",\n    \"status\": \"Sukses\",\n    \"sn\": \"SN-{{$randomInt}}\"\n  }\n}"
+						},
+						"url": { "raw": "{{baseUrl}}/callback/digiflazz", "host": ["{{baseUrl}}"], "path": ["callback", "digiflazz"] }
+					},
+					"description": "Simulasi ketika Digiflazz sudah menyelesaikan pengisian. Masukkan 'provider_order_id' dari database (tabel pembelians) ke variabel koleksi."
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": { "type": "text/javascript", "exec": [""] }
+		},
+		{
+			"listen": "test",
+			"script": { "type": "text/javascript", "exec": [""] }
+		}
+	],
+	"variable": [
+		{ "key": "baseUrl", "value": "http://localhost:8000", "type": "string" },
+		{ "key": "whatsapp", "value": "081234567890", "type": "string" },
+		{ "key": "tripayPrivateKey", "value": "YOUR_TRIPAY_PRIVATE_KEY", "type": "string" },
+		{ "key": "order_id", "value": "", "type": "string" },
+		{ "key": "tripay_reference", "value": "", "type": "string" },
+		{ "key": "provider_order_id", "value": "REF-HARY123", "type": "string" }
+	]
+}

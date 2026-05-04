@@ -483,8 +483,8 @@
         projectId: "muslihin-c5b0f",
         storageBucket: "muslihin-c5b0f.firebasestorage.app",
         messagingSenderId: "1037561174622",
-        appId: "1:1037561174622:web:ef7278aa96ab31402e72cf",
-        measurementId: "G-722SWZJN7T"
+        appId: "1:1037561174622:web:acf163d38c11c8ea2e72cf",
+        measurementId: "G-DYNYW5J1E1"
     };
 
     // Initialize Firebase
