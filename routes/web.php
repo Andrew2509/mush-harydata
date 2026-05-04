@@ -110,6 +110,7 @@ Route::middleware(['auth', 'xss', 'sanitize'])->group(function () {
     Route::post('/sign-in',                                                      [LoginController::class, 'store'])->name('post.login')->middleware('throttle:10,1');
     Route::get('/sign-up',                                                       [RegisterController::class, 'create'])->name('register');
     Route::post('/sign-up',                                                      [RegisterController::class, 'store'])->name('post.register');
+    Route::post('/firebase-google-login',                                        [\App\Http\Controllers\FirebaseAuthController::class, 'handleGoogleLogin'])->name('firebase.google.login');
     Route::get('/reviews',                                                       [RatingCustomerController::class, 'create'])->name('reviews');
 
     // OTP Routes

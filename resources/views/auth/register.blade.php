@@ -327,6 +327,59 @@
     @media (min-width: 1024px) {
         .brand-glow { font-size: 36px; margin-bottom: 20px; }
     }
+    .btn-google {
+        width: 100%;
+        padding: 12px;
+        background: #fff;
+        border: none;
+        border-radius: 12px;
+        color: #000;
+        font-weight: 700;
+        font-family: 'Orbitron', sans-serif;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin: 15px 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        font-size: 14px;
+        box-shadow: 0 4px 10px rgba(255, 255, 255, 0.1);
+    }
+
+    .btn-google:hover {
+        background: #f1f1f1;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(255, 255, 255, 0.2);
+    }
+
+    .btn-google img {
+        width: 20px;
+        height: 20px;
+    }
+
+    .or-divider {
+        display: flex;
+        align-items: center;
+        text-align: center;
+        margin: 15px 0;
+        color: rgba(255, 255, 255, 0.3);
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .or-divider::before,
+    .or-divider::after {
+        content: '';
+        flex: 1;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .or-divider:not(:empty)::before { margin-right: 15px; }
+    .or-divider:not(:empty)::after { margin-left: 15px; }
 </style>
 @endsection
 
@@ -448,6 +501,13 @@
 
                 <input type="hidden" name="verified" id="is_verified" value="0">
                 <button type="submit" id="btn-submit-reg" class="btn-register" disabled style="opacity: 0.5; cursor: not-allowed; margin-top: 5px;">DAFTAR</button>
+                
+                <div class="or-divider">Atau</div>
+
+                <button type="button" class="btn-google" id="btn-google-login">
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+                    Daftar dengan Google
+                </button>
             </form>
 
             <div class="login-link">
@@ -457,7 +517,66 @@
     </div>
 </div>
 
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+
 <script>
+    // Firebase configuration - REPLACE WITH YOUR PROJECT CONFIG
+    const firebaseConfig = {
+        apiKey: "YOUR_API_KEY",
+        authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+        projectId: "YOUR_PROJECT_ID",
+        storageBucket: "YOUR_PROJECT_ID.appspot.com",
+        messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+        appId: "YOUR_APP_ID"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const provider = new firebase.auth.GoogleAuthProvider();
+
+    document.getElementById('btn-google-login').addEventListener('click', function() {
+        this.disabled = true;
+        this.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Menghubungkan...';
+
+        auth.signInWithPopup(provider)
+            .then((result) => {
+                const user = result.user;
+                
+                // Send to backend
+                $.ajax({
+                    url: "{{ route('firebase.google.login') }}",
+                    method: "POST",
+                    data: {
+                        _token: "{{ csrf_token() }}",
+                        email: user.email,
+                        name: user.displayName,
+                        uid: user.uid
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            window.location.href = response.redirect;
+                        } else {
+                            alert('Gagal daftar: ' + (response.message || 'Terjadi kesalahan'));
+                            location.reload();
+                        }
+                    },
+                    error: function(xhr) {
+                        alert('Gagal daftar ke server. Silakan coba lagi.');
+                        location.reload();
+                    }
+                });
+            })
+            .catch((error) => {
+                console.error(error);
+                alert('Gagal menghubungkan ke Google: ' + error.message);
+                this.disabled = false;
+                this.innerHTML = '<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google"> Daftar dengan Google';
+            });
+    });
+
     const bgVideo = document.getElementById('video-bg');
     if (bgVideo) {
         bgVideo.play().catch(() => {});
