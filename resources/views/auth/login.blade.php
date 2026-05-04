@@ -492,14 +492,17 @@
     const auth = firebase.auth();
     const provider = new firebase.auth.GoogleAuthProvider();
 
-    document.getElementById('btn-google-login').addEventListener('click', function() {
-        this.disabled = true;
-        this.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Menghubungkan...';
-
-        auth.signInWithPopup(provider)
-            .then((result) => {
+    // Handle the redirect result when the page loads
+    auth.getRedirectResult()
+        .then((result) => {
+            if (result.user) {
                 const user = result.user;
                 
+                // Show loading state while processing
+                const btn = document.getElementById('btn-google-login');
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Memproses Sesi...';
+
                 // Send to backend
                 $.ajax({
                     url: "{{ route('firebase.google.login') }}",
@@ -515,21 +518,27 @@
                             window.location.href = response.redirect;
                         } else {
                             alert('Gagal masuk: ' + (response.message || 'Terjadi kesalahan'));
-                            location.reload();
+                            btn.disabled = false;
+                            btn.innerHTML = '<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google"> Masuk dengan Google';
                         }
                     },
                     error: function(xhr) {
                         alert('Gagal masuk ke server. Silakan coba lagi.');
-                        location.reload();
+                        btn.disabled = false;
+                        btn.innerHTML = '<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google"> Masuk dengan Google';
                     }
                 });
-            })
-            .catch((error) => {
-                console.error(error);
-                alert('Gagal menghubungkan ke Google: ' + error.message);
-                this.disabled = false;
-                this.innerHTML = '<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google"> Masuk dengan Google';
-            });
+            }
+        })
+        .catch((error) => {
+            console.error(error);
+            alert('Gagal autentikasi Google: ' + error.message);
+        });
+
+    document.getElementById('btn-google-login').addEventListener('click', function() {
+        this.disabled = true;
+        this.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Menghubungkan...';
+        auth.signInWithRedirect(provider);
     });
 
     const bgVideo = document.getElementById('video-bg');
