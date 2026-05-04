@@ -478,12 +478,13 @@
 <script>
     // Firebase configuration - REPLACE WITH YOUR PROJECT CONFIG
     const firebaseConfig = {
-        apiKey: "YOUR_API_KEY",
-        authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-        projectId: "YOUR_PROJECT_ID",
-        storageBucket: "YOUR_PROJECT_ID.appspot.com",
-        messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-        appId: "YOUR_APP_ID"
+        apiKey: "AIzaSyADmjw7FleQEuPWNqcoikiHHzKamWD-VDo",
+        authDomain: "muslihin-c5b0f.firebaseapp.com",
+        projectId: "muslihin-c5b0f",
+        storageBucket: "muslihin-c5b0f.firebasestorage.app",
+        messagingSenderId: "1037561174622",
+        appId: "1:1037561174622:web:ef7278aa96ab31402e72cf",
+        measurementId: "G-722SWZJN7T"
     };
 
     // Initialize Firebase
