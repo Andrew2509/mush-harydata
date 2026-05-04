@@ -41,7 +41,7 @@ class FirebaseAuthController extends Controller
             ]);
         }
 
-        Auth::login($user, true);
+        Auth::login($user, false);
 
         return response()->json([
             'success' => true,

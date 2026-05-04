@@ -48,4 +48,12 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
     ];
+
+    /**
+     * Disable remember token because the column is missing in DB
+     */
+    public function getRememberTokenName()
+    {
+        return null;
+    }
 }
