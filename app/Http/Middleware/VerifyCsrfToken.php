@@ -13,6 +13,12 @@ class VerifyCsrfToken extends \Illuminate\Foundation\Http\Middleware\VerifyCsrfT
      * @var array<int, string>
      */
     protected $except = [
+        'id/send-otp',
+        'id/verify-otp',
+        'id/sign-up',
+        'id/sign-in',
+        'id/forgot-password/*',
+        'api/*',
         'digi/callback/haryserver',
         'tokopaycallback',
         'paydisini/callback',

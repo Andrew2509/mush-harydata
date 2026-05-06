@@ -23,21 +23,31 @@ class RegisterController extends Controller
 
     public function store(Request $request)
     {
-        // Validasi input
+        // Standardize password confirmation for the validator if 'passwordd' is provided
+        if ($request->has('passwordd') && !$request->has('password_confirmation')) {
+            $request->merge(['password_confirmation' => $request->passwordd]);
+        }
+
         $validator = Validator::make($request->all(), [
             'nama' => 'required|string|max:255',
-            'username' => 'required|string|min:3|unique:users,username|max:255',
-            'email' => 'required|email|unique:users,email|max:255',
-            'password' => 'required|string|min:8|max:255',
-            'no_wa' => 'required|numeric|unique:users,no_wa'
+            'username' => 'required|string|max:255|unique:users',
+            'email' => 'required|email|max:255|unique:users',
+            'no_wa' => 'required|string|unique:users,no_wa',
+            'password' => 'required|string|min:8|confirmed',
         ]);
 
         if ($validator->fails()) {
+            if ($request->expectsJson() || $request->is('api/*') || $request->ajax()) {
+                return response()->json(['success' => false, 'message' => $validator->errors()->first()], 422);
+            }
             return redirect()->back()->withErrors($validator)->withInput();
         }
 
-        // Cek apakah sudah diverifikasi via WhatsApp (Server-side session check)
+        // Cek apakah nomor WA sudah diverifikasi OTP (Session check)
         if (!Session::has('otp_verified') || Session::get('otp_verified') !== true) {
+            if ($request->expectsJson() || $request->is('api/*') || $request->ajax()) {
+                return response()->json(['success' => false, 'message' => 'Silakan verifikasi nomor WhatsApp Anda terlebih dahulu menggunakan kode OTP.'], 403);
+            }
             return redirect()->back()->with('error', 'Silakan verifikasi nomor WhatsApp Anda terlebih dahulu menggunakan kode OTP.')->withInput();
         }
 
