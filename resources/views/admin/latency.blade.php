@@ -58,7 +58,7 @@
 
     <!-- Analisis Statistik (Rekomendasi Dosen) -->
     <div class="row mb-4">
-        <div class="col-md-4 mb-3">
+        <div class="col-md-6 mb-3">
             <div class="analysis-card">
                 <div class="analysis-number">97.7%</div>
                 <div class="analysis-details">
@@ -67,21 +67,12 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-4 mb-3">
+        <div class="col-md-6 mb-3">
             <div class="analysis-card">
                 <div class="analysis-number">7.5s</div>
                 <div class="analysis-details">
                     <h5 class="analysis-title">Avg. Waktu End-to-End</h5>
                     <p class="analysis-desc">Siklus kronologis utuh pemrosesan FCFS Queue hingga produk sukses terkirim.</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4 mb-3">
-            <div class="analysis-card">
-                <div class="analysis-number">100%</div>
-                <div class="analysis-details">
-                    <h5 class="analysis-title">Failover & Keamanan Sukses</h5>
-                    <p class="analysis-desc">Berhasil memitigasi connection timeout & memblokir serangan fake callback ilegal.</p>
                 </div>
             </div>
         </div>
