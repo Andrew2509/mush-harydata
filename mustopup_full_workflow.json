@@ -217,7 +217,7 @@
 		}
 	],
 	"variable": [
-		{ "key": "baseUrl", "value": "http://localhost:8000", "type": "string" },
+		{ "key": "baseUrl", "value": "https://mustopup.com", "type": "string" },
 		{ "key": "whatsapp", "value": "081234567890", "type": "string" },
 		{ "key": "tripayPrivateKey", "value": "YOUR_TRIPAY_PRIVATE_KEY", "type": "string" },
 		{ "key": "order_id", "value": "", "type": "string" },

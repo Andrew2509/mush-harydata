@@ -245,29 +245,13 @@ class TripayController extends Controller
                     
                     if ($dataLayanan->provider == "digiflazz") {
                         try {
-                            $random_part = mt_rand(100000, 999999);
-                            $provider_order_id = 'REF-HARY' . $random_part;
-                            $digiFlazz = new \App\Http\Controllers\digiFlazzController;
-                            $order = $digiFlazz->order($uid, $zone, $provider_id, $provider_order_id);
-                        
-                            Log::info('Digiflazz Order Response', [
-                                'order_id' => $order_id,
-                                'ref_id' => $provider_order_id,
-                                'response' => $order
-                            ]);
-
-                            if (isset($order['data']['status']) && ($order['data']['status'] == "Pending" || $order['data']['status'] == "Sukses")) {
-                                $orderStatus = true;
-                                $orderTransactionId = $provider_order_id;
-                            } else {
-                                Log::error('Digiflazz Order Gagal', [
-                                    'order_id' => $order_id,
-                                    'ref_id' => $provider_order_id,
-                                    'response' => $order
-                                ]);
-                            }
+                            // FCFS Queue Dispatching
+                            \App\Jobs\ProcessTopupJob::dispatch($order_id)->onQueue('topup');
+                            $orderStatus = true;
+                            $orderTransactionId = 'QUEUED';
+                            $order = ['status' => 'queued', 'message' => 'Transaction added to FCFS Queue'];
                         } catch (\Exception $e) {
-                            Log::error('Digiflazz API Exception', [
+                            Log::error('Digiflazz FCFS Queue Exception', [
                                 'order_id' => $order_id,
                                 'message' => $e->getMessage()
                             ]);
