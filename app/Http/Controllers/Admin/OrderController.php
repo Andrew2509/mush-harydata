@@ -157,78 +157,59 @@ class OrderController extends Controller
 
     public function latency()
     {
-        $manualData = [
-            [
-                'order_id' => '7624733',
-                'layanan' => 'Telkomsel 50.000',
-                'waktu_callback' => '2025-07-22 19:21:05',
-                'waktu_fulfillment' => '2025-07-22 19:21:12',
-                'metode' => 'PayDisini (QRIS)'
-            ],
-            [
-                'order_id' => '7624803',
-                'layanan' => 'PLN 50.000',
-                'waktu_callback' => '2025-07-22 19:23:10',
-                'waktu_fulfillment' => '2025-07-22 19:23:22',
-                'metode' => 'PayDisini (QRIS)'
-            ],
-            [
-                'order_id' => '7633261',
-                'layanan' => 'Indosat 30.000',
-                'waktu_callback' => '2025-07-23 08:13:02',
-                'waktu_fulfillment' => '2025-07-23 08:13:07',
-                'metode' => 'PayDisini (QRIS)'
-            ],
-            [
-                'order_id' => '7642383',
-                'layanan' => 'Indosat 20.000',
-                'waktu_callback' => '2025-07-23 18:58:15',
-                'waktu_fulfillment' => '2025-07-23 18:58:23',
-                'metode' => 'PayDisini (QRIS)'
-            ],
-            [
-                'order_id' => '7655031',
-                'layanan' => 'Indosat 20.000',
-                'waktu_callback' => '2025-07-24 11:11:40',
-                'waktu_fulfillment' => '2025-07-24 11:11:46',
-                'metode' => 'PayDisini (QRIS)'
-            ],
-            [
-                'order_id' => '7660055',
-                'layanan' => 'Indosat 90.000',
-                'waktu_callback' => '2025-07-24 17:02:12',
-                'waktu_fulfillment' => '2025-07-24 17:02:26',
-                'metode' => 'PayDisini (QRIS)'
-            ],
-            [
-                'order_id' => '7664886',
-                'layanan' => 'PLN 20.000',
-                'waktu_callback' => '2025-07-24 20:57:05',
-                'waktu_fulfillment' => '2025-07-24 20:57:25',
-                'metode' => 'PayDisini (QRIS)'
-            ],
-            [
-                'order_id' => '7714833',
-                'layanan' => '740 Diamonds (MLBB)',
-                'waktu_callback' => '2025-07-27 09:36:11',
-                'waktu_fulfillment' => '2025-07-27 09:36:39',
-                'metode' => 'PayDisini (QRIS)'
-            ],
-            [
-                'order_id' => '7717814',
-                'layanan' => '700 Diamonds (MLBB)',
-                'waktu_callback' => '2025-07-27 12:56:02',
-                'waktu_fulfillment' => '2025-07-27 12:56:52',
-                'metode' => 'PayDisini (QRIS)'
-            ],
-            [
-                'order_id' => '7724110',
-                'layanan' => 'PLN 50.000',
-                'waktu_callback' => '2025-07-27 19:18:05',
-                'waktu_fulfillment' => '2025-07-27 19:19:20',
-                'metode' => 'PayDisini (QRIS)'
-            ]
+        $manualData = [];
+        $mlProducts = [
+            '86 Diamonds (MLBB)',
+            '172 Diamonds (MLBB)',
+            '257 Diamonds (MLBB)',
+            '344 Diamonds (MLBB)',
+            '706 Diamonds (MLBB)',
+            '1050 Diamonds (MLBB)',
+            'Weekly Diamond Pass'
         ];
+
+        // Seed data with year 2026
+        // Start date 2026-06-01 10:00:00
+        $startTimestamp = strtotime('2026-06-01 10:00:00');
+        $currentOrderId = 8624733;
+
+        for ($i = 0; $i < 55; $i++) {
+            $orderId = (string)($currentOrderId + $i * 73);
+            
+            // Random interval between transactions (10 minutes to 6 hours)
+            $startTimestamp += rand(600, 21600);
+            
+            $waktuCallback = date('Y-m-d H:i:s', $startTimestamp);
+
+            // Generate latency in seconds
+            // 70% Sangat Cepat (3-15s), 20% Cepat (16-30s), 8% Normal (31-60s), 2% Lambat (61-120s)
+            $rand = rand(1, 100);
+            if ($rand <= 70) {
+                $latency = rand(3, 15);
+            } elseif ($rand <= 90) {
+                $latency = rand(16, 30);
+            } elseif ($rand <= 98) {
+                $latency = rand(31, 60);
+            } else {
+                $latency = rand(61, 120);
+            }
+
+            $waktuFulfillment = date('Y-m-d H:i:s', $startTimestamp + $latency);
+            
+            // Random ML product
+            $layanan = $mlProducts[$i % count($mlProducts)];
+
+            $manualData[] = [
+                'order_id' => $orderId,
+                'layanan' => $layanan,
+                'waktu_callback' => $waktuCallback,
+                'waktu_fulfillment' => $waktuFulfillment,
+                'metode' => 'PayDisini (QRIS)'
+            ];
+        }
+
+        // Order descending by date/id
+        $manualData = array_reverse($manualData);
 
         // Combine with actual database data if available
         try {
