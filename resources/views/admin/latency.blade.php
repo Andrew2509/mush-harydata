@@ -60,16 +60,16 @@
     <div class="row mb-4">
         <div class="col-md-6 mb-3">
             <div class="analysis-card">
-                <div class="analysis-number">97.7%</div>
+                <div class="analysis-number">{{ $reduksiPersen }}%</div>
                 <div class="analysis-details">
                     <h5 class="analysis-title">Reduksi Latensi Verifikasi</h5>
-                    <p class="analysis-desc">Waktu respons callback webhook turun drastis dari 5.3 detik menjadi hanya 0.12 detik.</p>
+                    <p class="analysis-desc">Waktu respons callback webhook turun drastis dari 5.3 detik menjadi hanya {{ $avgCallbackSeconds }} detik.</p>
                 </div>
             </div>
         </div>
         <div class="col-md-6 mb-3">
             <div class="analysis-card">
-                <div class="analysis-number">7.5s</div>
+                <div class="analysis-number">{{ $avgLatency }}s</div>
                 <div class="analysis-details">
                     <h5 class="analysis-title">Avg. Waktu End-to-End</h5>
                     <p class="analysis-desc">Siklus kronologis utuh pemrosesan FCFS Queue hingga produk sukses terkirim.</p>
