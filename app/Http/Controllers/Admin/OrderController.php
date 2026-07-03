@@ -438,9 +438,16 @@ class OrderController extends Controller
             $sheet->setCellValueExplicit('C' . $rowNum, $item['order_id'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
             $sheet->setCellValue('D' . $rowNum, $item['layanan']);
             
-            // Format dates
-            $sheet->setCellValue('E' . $rowNum, $item['waktu_callback']);
-            $sheet->setCellValue('F' . $rowNum, $item['waktu_fulfillment']);
+            // Format dates for Excel math using PHPToExcel
+            $tsCallback = strtotime($item['waktu_callback']);
+            $excelDateCallback = \PhpOffice\PhpSpreadsheet\Shared\Date::PHPToExcel($tsCallback);
+            $sheet->setCellValue('E' . $rowNum, $excelDateCallback);
+            $sheet->getStyle('E' . $rowNum)->getNumberFormat()->setFormatCode('yyyy-mm-dd hh:mm:ss');
+            
+            $tsFulfillment = strtotime($item['waktu_fulfillment']);
+            $excelDateFulfillment = \PhpOffice\PhpSpreadsheet\Shared\Date::PHPToExcel($tsFulfillment);
+            $sheet->setCellValue('F' . $rowNum, $excelDateFulfillment);
+            $sheet->getStyle('F' . $rowNum)->getNumberFormat()->setFormatCode('yyyy-mm-dd hh:mm:ss');
             
             // Formulas
             $sheet->setCellValue('G' . $rowNum, "=(F{$rowNum}-E{$rowNum})*86400");
