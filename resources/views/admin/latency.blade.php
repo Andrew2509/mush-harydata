@@ -54,6 +54,9 @@
         <h4 class="page-title" style="display:flex;align-items:center;gap:8px;margin:0;">
             <i class="fas fa-chart-line" style="color:#00f0ff;font-size:0.9rem;"></i> Analisis Performa & Latensi Transaksi
         </h4>
+        <a href="{{ route('admin.latency.export') }}" class="btn btn-success" style="display:flex;align-items:center;gap:8px;border-radius:10px;padding:8px 16px;font-family:'Orbitron',sans-serif;font-size:0.75rem;letter-spacing:0.5px;">
+            <i class="fas fa-file-excel" style="font-size:0.9rem;"></i> Export Excel
+        </a>
     </div>
 
     <!-- Analisis Statistik (Rekomendasi Dosen) -->

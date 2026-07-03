@@ -161,6 +161,7 @@ Route::middleware(['auth', 'check.role'])->group(function () {
     Route::get('/dashboard',                                                     [DashboardController::class, 'create'])->name('admin.dashboard');
     Route::get('/pesanan',                                                       [AdminOrder::class, 'create'])->name('pesanan');
     Route::get('/latency',                                                       [AdminOrder::class, 'latency'])->name('latency');
+    Route::get('/latency/export',                                                [AdminOrder::class, 'exportLatency'])->name('admin.latency.export');
     Route::get('/order-status/{order_id}/{status}',                              [AdminOrder::class, 'update']);
     
     
