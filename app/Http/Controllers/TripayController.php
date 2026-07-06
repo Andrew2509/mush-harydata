@@ -245,17 +245,43 @@ class TripayController extends Controller
                     
                     if ($dataLayanan->provider == "digiflazz") {
                         try {
+                            // Update status to Paid, set callback timestamp, and queue status
+                            $dataPembeli->update([
+                                'status' => 'Paid',
+                                'waktu_callback' => now(),
+                                'provider_order_id' => 'QUEUED',
+                                'log' => json_encode(['status' => 'queued', 'message' => 'Transaction added to FCFS Queue'])
+                            ]);
+
                             // FCFS Queue Dispatching
                             \App\Jobs\ProcessTopupJob::dispatch($order_id)->onQueue('topup');
-                            $orderStatus = true;
-                            $orderTransactionId = 'QUEUED';
-                            $order = ['status' => 'queued', 'message' => 'Transaction added to FCFS Queue'];
+
+                            // Send WhatsApp message to buyer
+                            $pesanPembeli = 
+                                "*Pembayaran Berhasil*\n\n" .
+                                "No Invoice: *$order_id*\n" .
+                                "Layanan : *$dataPembeli->layanan*\n" .
+                                "ID : *$dataPembeli->user_id*\n" .
+                                "Server : *$dataPembeli->zone*\n" .
+                                "Nickname : *$dataPembeli->nickname*\n" .
+                                "Harga : *Rp. " . number_format($dataPembeli->harga, 0, '.', ',') . "*\n" .
+                                "Status Pembelian: *Process*\n" .
+                                "Estimasi Proses: *1-5 Menit Max 24 Jam*\n\n" .
+                                "INI ADALAH PESAN OTOMATIS";
+                            
+                            $this->msg($invoice->no_pembeli, $pesanPembeli);
+
+                            $orderStatus = false;
                         } catch (\Exception $e) {
                             Log::error('Digiflazz FCFS Queue Exception', [
                                 'order_id' => $order_id,
                                 'message' => $e->getMessage()
                             ]);
-                            $order = ['error' => $e->getMessage()];
+                            $dataPembeli->update([
+                                'status' => 'Batal',
+                                'log' => json_encode(['error' => $e->getMessage()])
+                            ]);
+                            $orderStatus = false;
                         }
                     } elseif ($dataLayanan->provider == "topupedia") {
                         $topupedia = new \App\Http\Controllers\provider\topupedia\TopupediaController;

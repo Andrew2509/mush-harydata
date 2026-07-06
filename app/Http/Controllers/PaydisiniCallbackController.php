@@ -129,17 +129,46 @@ class PaydisiniCallbackController extends Controller
             $zone = $pembelian->zone;
             $provider_id = $layanan->provider_id;
 
-            if ($provider === "digiflazz") {
-                $random_part = mt_rand(100000, 999999);
-                $provider_order_id = 'Terproses Digiflazz - ' . $random_part;
-                $digiFlazz = new digiFlazzController;
-                $order = $digiFlazz->order($user_id, $zone, $provider_id, $provider_order_id);
+            $is_queued = false;
 
-                if ($order['data']['status'] === "Pending" || $order['data']['status'] === "Sukses") {
-                    $order['data']['status'] = true;
-                    $order['transactionId'] = $provider_order_id;
-                } else {
-                    $order['data']['status'] = false;
+            if ($provider === "digiflazz") {
+                try {
+                    // Update status to Paid, set callback timestamp, and queue status
+                    $pembelian->update([
+                        'status' => 'Paid',
+                        'waktu_callback' => now(),
+                        'provider_order_id' => 'QUEUED',
+                        'log' => json_encode(['status' => 'queued', 'message' => 'Transaction added to FCFS Queue'])
+                    ]);
+
+                    // FCFS Queue Dispatching
+                    \App\Jobs\ProcessTopupJob::dispatch($pembelian->order_id)->onQueue('topup');
+
+                    // Send WhatsApp message to buyer
+                    $pesanPembeli = 
+                        "*Pembayaran Berhasil*\n\n" .
+                        "No Invoice: *$pembelian->order_id*\n" .
+                        "Layanan : *$pembelian->layanan*\n" .
+                        "ID : *$pembelian->user_id*\n" .
+                        "Server : *$pembelian->zone*\n" .
+                        "Nickname : *$pembelian->nickname*\n" .
+                        "Harga : *Rp. " . number_format($pembelian->harga, 0, '.', ',') . "*\n" .
+                        "Status Pembelian: *Process*\n" .
+                        "Estimasi Proses: *1-5 Menit Max 24 Jam*\n\n" .
+                        "INI ADALAH PESAN OTOMATIS";
+
+                    $this->msg($transaction->no_pembeli, $pesanPembeli);
+                    $is_queued = true;
+                } catch (\Exception $e) {
+                    Log::error('Paydisini Callback Digiflazz FCFS Queue Exception', [
+                        'order_id' => $pembelian->order_id,
+                        'message' => $e->getMessage()
+                    ]);
+                    $pembelian->update([
+                        'status' => 'Batal',
+                        'log' => json_encode(['error' => $e->getMessage()])
+                    ]);
+                    $is_queued = true;
                 }
             } elseif ($provider === "bangjeff") {
                 $bangjeff = new BangJeffController;
@@ -193,42 +222,44 @@ class PaydisiniCallbackController extends Controller
                 $order['data']['status'] = true;
             }
 
-            if ($order['data']['status']) {
-                $pesanPembeli = 
-                    "*Pembayaran Berhasil*\n\n" .
-                    "No Invoice: *$pembelian->order_id*\n" .
-                    "Layanan : *$pembelian->layanan*\n" .
-                    "ID : *$pembelian->user_id*\n" .
-                    "Server : *$pembelian->zone*\n" .
-                    "Nickname : *$pembelian->nickname*\n" .
-                    "Harga : *Rp. " . number_format($pembelian->harga, 0, '.', ',') . "*\n" .
-                    "Status Pembelian: *Process*\n" .
-                    "Estimasi Proses: *1-5 Menit Max 24 Jam*\n\n" .
-                    "INI ADALAH PESAN OTOMATIS";
+            if (!$is_queued) {
+                if ($order['data']['status']) {
+                    $pesanPembeli = 
+                        "*Pembayaran Berhasil*\n\n" .
+                        "No Invoice: *$pembelian->order_id*\n" .
+                        "Layanan : *$pembelian->layanan*\n" .
+                        "ID : *$pembelian->user_id*\n" .
+                        "Server : *$pembelian->zone*\n" .
+                        "Nickname : *$pembelian->nickname*\n" .
+                        "Harga : *Rp. " . number_format($pembelian->harga, 0, '.', ',') . "*\n" .
+                        "Status Pembelian: *Process*\n" .
+                        "Estimasi Proses: *1-5 Menit Max 24 Jam*\n\n" .
+                        "INI ADALAH PESAN OTOMATIS";
 
-                if ($pembelian->tipe_transaksi !== 'joki') {
-                    $pembelian->update([
-                        'provider_order_id' => isset($order['transactionId']) ? $order['transactionId'] : 0,
-                        'status' => 'Proses',
-                        'log' => json_encode($order)
-                    ]);
-                    $this->msg($transaction->no_pembeli, $pesanPembeli); 
+                    if ($pembelian->tipe_transaksi !== 'joki') {
+                        $pembelian->update([
+                            'provider_order_id' => isset($order['transactionId']) ? $order['transactionId'] : 0,
+                            'status' => 'Proses',
+                            'log' => json_encode($order)
+                        ]);
+                        $this->msg($transaction->no_pembeli, $pesanPembeli); 
+                    } else {
+                        $pembelian->update([
+                            'provider_order_id' => '', 
+                            'status' => 'Proses',
+                            'log' => json_encode($order)
+                        ]);
+                        $this->msg($transaction->no_pembeli, $pesanPembeli); 
+                    }
                 } else {
-                    $pembelian->update([
-                        'provider_order_id' => '', 
-                        'status' => 'Proses',
-                        'log' => json_encode($order)
-                    ]);
-                    $this->msg($transaction->no_pembeli, $pesanPembeli); 
+                    if ($pembelian->tipe_transaksi !== 'joki') {
+                        $pembelian->update([
+                            'status' => 'Batal',
+                            'log' => json_encode($order)
+                        ]);
+                    }
+                    
                 }
-            } else {
-                if ($pembelian->tipe_transaksi !== 'joki') {
-                    $pembelian->update([
-                        'status' => 'Batal',
-                        'log' => json_encode($order)
-                    ]);
-                }
-                
             }
         } else {
             Log::error('Service Tiidak Ditemukan', ['layanan' => $pembelian->layanan]);

@@ -128,18 +128,37 @@ class TokoPayCallbackController extends Controller
                             ]);
                         }
                     } else {
+                        $is_queued = false;
                         if ($dataLayanan->provider == "digiflazz") {
-                        $random_part = mt_rand(100000, 999999);
-                        $provider_order_id = 'REF-HARY' . $random_part;
-                        $digiFlazz = new digiFlazzController;
-                        $order = $digiFlazz->order($uid, $zone, $provider_id, $provider_order_id);
-                    
-                        if ($order['data']['status'] == "Pending" || $order['data']['status'] == "Sukses") {
-                            $order['data']['status'] = true;
-                            $order['transactionId'] = $provider_order_id;
-                        } else {
-                            $order['data']['status'] = false;
-                        }
+                            try {
+                                // Update status to Paid, set callback timestamp, and queue status
+                                $dataPembeli->update([
+                                    'status' => 'Paid',
+                                    'waktu_callback' => now(),
+                                    'provider_order_id' => 'QUEUED',
+                                    'log' => json_encode(['status' => 'queued', 'message' => 'Transaction added to FCFS Queue'])
+                                ]);
+
+                                // FCFS Queue Dispatching
+                                \App\Jobs\ProcessTopupJob::dispatch($order_id)->onQueue('topup');
+
+                                if ($dataPembeli->tipe_transaksi !== 'joki' || $dataLayanan->provider == "vilogml") {
+                                    $this->msg($invoice->no_pembeli, $pesanPembeli);
+                                } else {
+                                    $this->msg($invoice->no_pembeli, $pesanJoki);
+                                }
+                                $is_queued = true;
+                            } catch (\Exception $e) {
+                                Log::error('TokoPay Digiflazz FCFS Queue Exception', [
+                                    'order_id' => $order_id,
+                                    'message' => $e->getMessage()
+                                ]);
+                                $dataPembeli->update([
+                                    'status' => 'Batal',
+                                    'log' => json_encode(['error' => $e->getMessage()])
+                                ]);
+                                $is_queued = true;
+                            }
                         } elseif ($dataLayanan->provider == "topupedia") {
                             $topupedia = new TopupediaController;
                             
@@ -221,38 +240,40 @@ class TokoPayCallbackController extends Controller
                         }
 
 
-                        if ($order['data']['status']) {
+                        if (!$is_queued) {
+                            if ($order['data']['status']) {
 
-                            if ($dataPembeli->tipe_transaksi !== 'joki' || $dataLayanan->provider == "vilogml") {
-                                // Update status menjadi 'Proses' untuk tipe transaksi bukan 'joki'
-                                $dataPembeli->update([
-                                    'provider_order_id' => isset($order['transactionId']) ? $order['transactionId'] : 0,
-                                    'status' => 'Proses',
-                                    'log' => json_encode($order),
-                                    'waktu_callback' => now()
-                                ]);
-                                // Kirim pesan setelah status menjadi 'Diproses'
-                                $this->msg($invoice->no_pembeli, $pesanPembeli);
+                                if ($dataPembeli->tipe_transaksi !== 'joki' || $dataLayanan->provider == "vilogml") {
+                                    // Update status menjadi 'Proses' untuk tipe transaksi bukan 'joki'
+                                    $dataPembeli->update([
+                                        'provider_order_id' => isset($order['transactionId']) ? $order['transactionId'] : 0,
+                                        'status' => 'Proses',
+                                        'log' => json_encode($order),
+                                        'waktu_callback' => now()
+                                    ]);
+                                    // Kirim pesan setelah status menjadi 'Diproses'
+                                    $this->msg($invoice->no_pembeli, $pesanPembeli);
+                                } else {
+                                    // Update status menjadi 'Proses' untuk tipe transaksi 'joki'
+                                    $dataPembeli->update([
+                                        'provider_order_id' => '', 
+                                        'status' => 'Proses',
+                                        'log' => json_encode($order),
+                                        'waktu_callback' => now()
+                                    ]);
+                                    // Kirim pesan untuk joki setelah status 'Diproses'
+                                    $this->msg($invoice->no_pembeli, $pesanJoki);
+                                }
                             } else {
-                                // Update status menjadi 'Proses' untuk tipe transaksi 'joki'
-                                $dataPembeli->update([
-                                    'provider_order_id' => '', 
-                                    'status' => 'Proses',
-                                    'log' => json_encode($order),
-                                    'waktu_callback' => now()
-                                ]);
-                                // Kirim pesan untuk joki setelah status 'Diproses'
-                                $this->msg($invoice->no_pembeli, $pesanJoki);
-                            }
-                        } else {
-                            // Logika untuk order yang gagal
-                            if ($dataPembeli->tipe_transaksi !== 'joki') {
-                                $dataPembeli->update([
-                                    'status' => 'Batal', // Update status menjadi 'Batal' untuk tipe transaksi bukan 'joki'
-                                    'log' => json_encode($order)
-                                ]);
-                            } else {
-                                // Jika tipe transaksi adalah 'joki' dan transaksi gagal, Anda dapat menentukan logika khusus di sini
+                                // Logika untuk order yang gagal
+                                if ($dataPembeli->tipe_transaksi !== 'joki') {
+                                    $dataPembeli->update([
+                                        'status' => 'Batal', // Update status menjadi 'Batal' untuk tipe transaksi bukan 'joki'
+                                        'log' => json_encode($order)
+                                    ]);
+                                } else {
+                                    // Jika tipe transaksi adalah 'joki' dan transaksi gagal, Anda dapat menentukan logika khusus di sini
+                                }
                             }
                         }
                     }
