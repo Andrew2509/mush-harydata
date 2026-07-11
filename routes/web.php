@@ -269,6 +269,7 @@ Route::post('/sus', [SusController::class, 'store'])->name('sus.store');
 // Thesis/Report REST API Routes (Conforming to Bab 4 Section 4.1.3)
 use App\Http\Controllers\Api\ThesisApiController;
 Route::post('/checkout', [ThesisApiController::class, 'checkout']);
+Route::post('/digiflazz/order', [ThesisApiController::class, 'digiflazzOrder']);
 Route::post('/callback/tripay', [ThesisApiController::class, 'callbackTripay']);
 Route::post('/callback/digiflazz', [ThesisApiController::class, 'callbackDigiflazz']);
 Route::get('/invoice/{id}', [ThesisApiController::class, 'invoiceDetail']);

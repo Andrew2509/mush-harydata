@@ -290,3 +290,67 @@ paths:
                   message:
                     type: string
                     example: "Unauthorized."
+
+  /digiflazz/order:
+    post:
+      summary: Request Order ke Digiflazz
+      description: Endpoint simulasi pengiriman pesanan top-up H2H (Host-to-Host) dari Laravel ke API Digiflazz setelah status transaksi PAID.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - buyer_sku_code
+                - customer_no
+                - ref_id
+                - sign
+              properties:
+                username:
+                  type: string
+                  description: Username akun Digiflazz Anda.
+                  example: "mustopup"
+                buyer_sku_code:
+                  type: string
+                  description: Kode SKU produk dari Digiflazz (e.g. ML86).
+                  example: "ML86"
+                customer_no:
+                  type: string
+                  description: Nomor ID Player tujuan top-up.
+                  example: "123456789(1234)"
+                ref_id:
+                  type: string
+                  description: Referensi unik transaksi dari sistem Mustopup.
+                  example: "ORD-202600001"
+                sign:
+                  type: string
+                  description: Signature MD5 (MD5 dari username + apiKey + ref_id).
+                  example: "3b9e5d4d6d9cxxxxxxxxxxxxxxxx"
+      responses:
+        '200':
+          description: Pesanan Diterima oleh Digiflazz (HTTP 200 OK)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      ref_id:
+                        type: string
+                        example: "ORD-202600001"
+                      buyer_sku_code:
+                        type: string
+                        example: "ML86"
+                      customer_no:
+                        type: string
+                        example: "123456789(1234)"
+                      status:
+                        type: string
+                        example: "Pending"
+                      message:
+                        type: string
+                        example: "Pesanan diterima"

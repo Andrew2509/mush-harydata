@@ -75,6 +75,33 @@ class ThesisApiController extends Controller
     }
 
     /**
+     * POST /digiflazz/order
+     */
+    public function digiflazzOrder(Request $request)
+    {
+        Log::info('Thesis API Digiflazz Order Simulation Request', $request->all());
+
+        // Validate digiflazz fields
+        $request->validate([
+            'username' => 'required',
+            'buyer_sku_code' => 'required',
+            'customer_no' => 'required',
+            'ref_id' => 'required',
+            'sign' => 'required',
+        ]);
+
+        return response()->json([
+            'data' => [
+                'ref_id' => $request->ref_id,
+                'buyer_sku_code' => $request->buyer_sku_code,
+                'customer_no' => $request->customer_no,
+                'status' => 'Pending',
+                'message' => 'Pesanan diterima'
+            ]
+        ], 200);
+    }
+
+    /**
      * POST /callback/tripay
      */
     public function callbackTripay(Request $request)

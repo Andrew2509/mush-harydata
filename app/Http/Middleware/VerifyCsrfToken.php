@@ -29,7 +29,8 @@ class VerifyCsrfToken extends \Illuminate\Foundation\Http\Middleware\VerifyCsrfT
         'id/konfirmasi-data',
         'id',
         'check-voucher',
-        'checkout'
+        'checkout',
+        'digiflazz/order'
     ];
     
     /**
