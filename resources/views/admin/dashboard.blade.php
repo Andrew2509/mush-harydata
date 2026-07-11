@@ -812,7 +812,7 @@
                 <i class="fas fa-clock" style="color:#ff9f00;"></i>
                 <span>DAFTAR ANTRIAN TRANSAKSI AKTIF (DIGIFLAZZ)</span>
             </div>
-            <a href="{{ route('admin.latency') }}" class="btn-print">
+            <a href="{{ route('latency') }}" class="btn-print">
                 <i class="fas fa-chart-line"></i> Analisis Latensi
             </a>
         </div>
