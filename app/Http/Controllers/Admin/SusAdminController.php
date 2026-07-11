@@ -210,23 +210,51 @@ class SusAdminController extends Controller
 
     private function interpretScore($score)
     {
-        $interpretation = [
-            'grade' => 'F',
-            'adjective' => 'Worst Imaginable',
-            'acceptability' => 'Unacceptable',
-            'color' => 'danger'
-        ];
-
-        if ($score >= 80.3) {
-            $interpretation = ['grade' => 'A', 'adjective' => 'Excellent', 'acceptability' => 'Acceptable', 'color' => 'success'];
-        } elseif ($score >= 68) {
-            $interpretation = ['grade' => 'B', 'adjective' => 'Good', 'acceptability' => 'Acceptable', 'color' => 'primary'];
+        // Acceptability
+        if ($score >= 71) {
+            $acceptability = 'Acceptable';
+            $color = 'success';
         } elseif ($score >= 51) {
-            $interpretation = ['grade' => 'C', 'adjective' => 'OK', 'acceptability' => 'Marginal', 'color' => 'warning'];
-        } elseif ($score >= 38) {
-            $interpretation = ['grade' => 'D', 'adjective' => 'Poor', 'acceptability' => 'Marginal', 'color' => 'info'];
+            $acceptability = 'Marginal';
+            $color = 'warning';
+        } else {
+            $acceptability = 'Not Acceptable';
+            $color = 'danger';
         }
 
-        return $interpretation;
+        // Grade Scale
+        if ($score >= 90) {
+            $grade = 'A';
+        } elseif ($score >= 80) {
+            $grade = 'B';
+        } elseif ($score >= 70) {
+            $grade = 'C';
+        } elseif ($score >= 60) {
+            $grade = 'D';
+        } else {
+            $grade = 'F';
+        }
+
+        // Adjective Rating
+        if ($score >= 86) {
+            $adjective = 'Best Imaginable';
+        } elseif ($score >= 74) {
+            $adjective = 'Excellent';
+        } elseif ($score >= 53) {
+            $adjective = 'Good';
+        } elseif ($score >= 40) {
+            $adjective = 'OK';
+        } elseif ($score >= 26) {
+            $adjective = 'Poor';
+        } else {
+            $adjective = 'Worst Imaginable';
+        }
+
+        return [
+            'grade' => $grade,
+            'adjective' => $adjective,
+            'acceptability' => $acceptability,
+            'color' => $color
+        ];
     }
 }
