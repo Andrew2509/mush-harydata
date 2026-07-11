@@ -28,7 +28,8 @@ class VerifyCsrfToken extends \Illuminate\Foundation\Http\Middleware\VerifyCsrfT
         'id/harga',
         'id/konfirmasi-data',
         'id',
-        'check-voucher'
+        'check-voucher',
+        'checkout'
     ];
     
     /**
