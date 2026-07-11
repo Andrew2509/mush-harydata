@@ -268,6 +268,8 @@ Route::middleware(['auth', 'check.role'])->group(function () {
     Route::post('/admin/sus/question/{id}', [SusAdminController::class, 'updateQuestion'])->name('admin.sus.question.update');
     Route::get('/admin/sus/question/delete/{id}', [SusAdminController::class, 'destroyQuestion'])->name('admin.sus.question.delete');
     Route::get('/admin/sus/export', [SusAdminController::class, 'exportExcel'])->name('admin.sus.export');
+    Route::get('/admin/sus/recalculate', [SusAdminController::class, 'recalculate'])->name('admin.sus.recalculate');
+    Route::get('/admin/sus/optimize', [SusAdminController::class, 'optimize'])->name('admin.sus.optimize');
 });
 
 // User SUS routes

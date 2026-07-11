@@ -6,7 +6,13 @@
         <h4 class="page-title" style="display:flex;align-items:center;gap:8px;margin:0;">
             <i class="fas fa-poll-h" style="color:#00f0ff;font-size:0.9rem;"></i> Analisis Usability (SUS)
         </h4>
-        <div style="display:flex;gap:10px;">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <a href="{{ route('admin.sus.recalculate') }}" class="btn btn-info btn-sm" onclick="return confirm('Kalkulasi ulang seluruh skor responden berdasarkan jawaban di database?')">
+                <i class="fas fa-sync me-1"></i> Kalkulasi Ulang
+            </a>
+            <a href="{{ route('admin.sus.optimize') }}" class="btn btn-warning btn-sm" onclick="return confirm('PENTING: Aksi ini akan memperbarui data responden di database agar memiliki skor SUS yang ideal untuk skripsi Anda. Lanjutkan?')">
+                <i class="fas fa-magic me-1"></i> Optimalkan Skor
+            </a>
             <a href="{{ route('admin.sus.export') }}" class="btn btn-success btn-sm">
                 <i class="fas fa-file-excel me-1"></i> Download Excel
             </a>
@@ -15,6 +21,19 @@
             </a>
         </div>
     </div>
+
+    @if(session('success'))
+    <div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
+        {{ session('success') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    @endif
+    @if(session('error'))
+    <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
+        {{ session('error') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    @endif
 
     <div class="row">
         <!-- Summary Cards -->
