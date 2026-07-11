@@ -64,6 +64,8 @@
                             <thead>
                                 <tr>
                                     <th>User</th>
+                                    <th>Usia</th>
+                                    <th>Kelamin</th>
                                     @foreach($questions as $q)
                                     <th title="{{ $q->question_text }}">P{{ $q->order }}</th>
                                     @endforeach
@@ -74,6 +76,8 @@
                                 @foreach($responses as $res)
                                 <tr>
                                     <td>{{ $res->nama ?? ($res->user ? $res->user->name : 'Anonymous') }}</td>
+                                    <td>{{ $res->usia ?? '-' }}</td>
+                                    <td>{{ $res->jenis_kelamin ?? '-' }}</td>
                                     @for($i=1; $i<=10; $i++)
                                     <td>{{ $res->{'q'.$i} }}</td>
                                     @endfor
@@ -92,7 +96,7 @@
 <script>
 $(document).ready(function() {
     $('#sus-table').DataTable({
-        order: [[11, 'desc']]
+        order: [[13, 'desc']]
     });
 });
 </script>
