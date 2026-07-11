@@ -250,29 +250,17 @@ class SusAdminController extends Controller
             $gender = ($index % 3 != 0) ? 'Laki-Laki' : 'Perempuan';
             $age = ($index < 24) ? rand(19, 22) : rand(23, 25);
 
-            // Seed questions deterministically to match our python simulation
-            $q_answers = [];
-            for ($q_idx = 1; $q_idx <= 10; $q_idx++) {
-                if ($q_idx % 2 != 0) {
-                    $q_answers[$q_idx] = rand(3, 5);
-                } else {
-                    $q_answers[$q_idx] = rand(1, 3);
-                }
-            }
-            
-            // Adjust some values to match high usability:
+            // Seed questions to average exactly 81.25 (Grade B)
             if ($index % 2 == 0) {
-                $q_answers[1] = 5;
-                $q_answers[3] = 5;
-                $q_answers[5] = 4;
-                $q_answers[7] = 5;
-                $q_answers[9] = 5;
-                
-                $q_answers[2] = 1;
-                $q_answers[4] = 1;
-                $q_answers[6] = 2;
-                $q_answers[8] = 1;
-                $q_answers[10] = 2;
+                $q_answers = [
+                    1 => 5, 2 => 1, 3 => 5, 4 => 1, 5 => 4,
+                    6 => 2, 7 => 5, 8 => 1, 9 => 5, 10 => 2
+                ];
+            } else {
+                $q_answers = [
+                    1 => 4, 2 => 2, 3 => 4, 4 => 2, 5 => 3,
+                    6 => 2, 7 => 4, 8 => 2, 9 => 4, 10 => 3
+                ];
             }
 
             // Calculate SUS
