@@ -64,8 +64,16 @@ use App\Models\Withdrawal;
 use App\Http\Controllers\OtpController;
 
 Route::get('/cek-ip', function () {
-    $ipAddress = request()->ip(); 
-    return response()->json(['ip' => $ipAddress]);
+    $clientIp = request()->ip(); 
+    try {
+        $serverIp = Http::get('https://api.ipify.org?format=json')->json()['ip'] ?? $_SERVER['SERVER_ADDR'];
+    } catch (\Exception $e) {
+        $serverIp = $_SERVER['SERVER_ADDR'] ?? 'unknown';
+    }
+    return response()->json([
+        'ip_anda_sebagai_pengunjung' => $clientIp,
+        'ip_server_hostinger_untuk_whitelist_digiflazz' => $serverIp
+    ]);
 });
 
 Route::get('/test-debug', function () {
