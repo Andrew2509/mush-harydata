@@ -122,8 +122,13 @@ class ThesisApiController extends Controller
                     if ($pembelian) {
                         $pembelian->update([
                             'status' => 'Paid',
-                            'waktu_callback' => now()
+                            'waktu_callback' => now(),
+                            'provider_order_id' => 'QUEUED',
+                            'log' => json_encode(['status' => 'queued', 'message' => 'Transaction added to FCFS Queue'])
                         ]);
+
+                        // Dispatch the FCFS Queue Job!
+                        \App\Jobs\ProcessTopupJob::dispatch($merchantRef)->onQueue('topup');
                     }
                 }
 
