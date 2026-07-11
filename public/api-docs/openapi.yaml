@@ -1,264 +1,124 @@
 openapi: 3.0.0
 info:
-  title: Mustopup API Documentation
+  title: Mustopup REST API Documentation
   description: |
     Dokumentasi REST API internal dan integrasi pihak ketiga untuk platform top-up game **Mustopup**.
-    Dokumentasi ini mencakup API checkout transaksi, validasi akun game, pengecekan harga, serta rute penerimaan callback (webhook) dari payment gateway dan provider.
+    Seluruh proses pertukaran data menggunakan format **JSON** melalui protokol **HTTP/HTTPS**.
   version: 1.0.0
 servers:
   - url: /
-    description: Server Relatif Aktif (Gunakan domain Anda di Hostinger)
-  - url: http://mustopup.com
+    description: Server Relatif Aktif (Domain Hostinger Anda)
+  - url: https://mustopup.com
     description: Server Produksi Utama
 paths:
-  /id:
+  /checkout:
     post:
-      summary: Buat Transaksi Baru (Checkout)
-      description: Memproses pembuatan order transaksi pembelian voucher/top-up game baru dan meneruskannya ke payment gateway (Tripay, Tokopay, Paydisini, dll.).
+      summary: Endpoint Checkout
+      description: Memproses pesanan top-up yang dikirimkan oleh pengguna, melakukan validasi, menyimpan transaksi ke database, dan membuat invoice pembayaran melalui API Tripay.
       requestBody:
         required: true
         content:
-          application/x-www-form-urlencoded:
+          application/json:
             schema:
               type: object
               required:
-                - service
+                - game_id
+                - player_id
+                - product_id
                 - payment_method
-                - nomor
               properties:
-                service:
+                game_id:
+                  type: string
+                  description: Slug/ID game yang akan di-topup.
+                  example: "mobile-legends"
+                player_id:
+                  type: string
+                  description: ID Player / User ID game.
+                  example: "123456789"
+                zone_id:
+                  type: string
+                  description: ID Zone / Server game (opsional).
+                  example: "1234"
+                product_id:
                   type: integer
-                  description: ID Layanan/Produk yang ingin dibeli (dari tabel layanans).
-                  example: 14
+                  description: ID unik produk/layanan yang dibeli.
+                  example: 15
                 payment_method:
                   type: string
-                  description: Kode Metode Pembayaran (misal BRIVA, QRIS, SALDO, ALFAMART, etc.).
-                  example: BRIVA
-                nomor:
-                  type: string
-                  description: Nomor telepon/WhatsApp pembeli untuk pengiriman notifikasi.
-                  example: "081234567890"
-                uid:
-                  type: string
-                  description: User ID Game pembeli (Wajib jika bukan kategori Joki).
-                  example: "12345678"
-                zone:
-                  type: string
-                  description: Zone ID / Server ID Game pembeli (Opsional, e.g. untuk Mobile Legends).
-                  example: "2001"
-                voucher:
-                  type: string
-                  description: Kode promo voucher jika tersedia.
-                  example: PROMO50
-                ktg_tipe:
-                  type: string
-                  description: Tipe kategori layanan khusus (e.g. joki, jokigendong, vilogml).
-                  example: joki
-                email_joki:
-                  type: string
-                  description: Alamat email akun game (Diperlukan jika ktg_tipe = joki/vilogml).
-                password_joki:
-                  type: string
-                  description: Kata sandi akun game (Diperlukan jika ktg_tipe = joki/vilogml).
-                loginvia_joki:
-                  type: string
-                  description: Provider login (Moonton, VK, Facebook, dll.) untuk joki.
-                nickname_joki:
-                  type: string
-                  description: Nama panggilan/nickname akun untuk joki.
-                qty:
-                  type: integer
-                  description: Jumlah order (untuk joki/gendong).
-                  default: 1
+                  description: Kode metode pembayaran yang digunakan.
+                  example: "QRIS"
       responses:
         '200':
-          description: Berhasil memproses order.
+          description: Berhasil (HTTP 200 OK)
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  status:
+                  success:
                     type: boolean
                     example: true
                   order_id:
                     type: string
-                    example: "MSTP123456"
-        '422':
-          description: Validasi input gagal.
-        '500':
-          description: Kesalahan internal server.
-
-  /id/harga:
-    post:
-      summary: Cek Harga Layanan
-      description: Mengambil detail harga layanan berdasarkan tipe member (Member, Gold, Platinum) dan menghitung harga akhir jika ada flash sale atau diskon kuantitas.
-      requestBody:
-        required: true
-        content:
-          application/x-www-form-urlencoded:
-            schema:
-              type: object
-              required:
-                - nominal
-              properties:
-                nominal:
-                  type: integer
-                  description: ID Layanan yang dicari harganya.
-                  example: 14
-                ktg_tipe:
-                  type: string
-                  description: Tipe kategori (e.g. joki) untuk menghitung harga berkelompok.
-                qty:
-                  type: integer
-                  description: Jumlah kuantitas.
-                  default: 1
-      responses:
-        '200':
-          description: Harga berhasil diambil.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: boolean
-                    example: true
-                  harga:
-                    type: integer
-                    example: 52000
-
-  /id/konfirmasi-data:
-    post:
-      summary: Validasi Data Pengguna & Akun Game
-      description: Mengecek validitas ID game ke pihak API pengecek (Codashop/Hary.Asia) dan mengembalikan modal dialog detail konfirmasi transaksi jika valid.
-      requestBody:
-        required: true
-        content:
-          application/x-www-form-urlencoded:
-            schema:
-              type: object
-              required:
-                - uid
-                - service
-                - payment_method
-                - nomor
-              properties:
-                uid:
-                  type: string
-                  description: ID Game yang divalidasi.
-                  example: "12345678"
-                zone:
-                  type: string
-                  description: ID Zone/Server (jika game membutuhkan).
-                  example: "2001"
-                service:
-                  type: integer
-                  description: ID Layanan yang akan dibeli.
-                  example: 14
-                payment_method:
-                  type: string
-                  description: Metode pembayaran yang dipilih.
-                  example: QRIS
-                nomor:
-                  type: string
-                  description: Nomor whatsapp pembeli.
-                  example: "081234567890"
-      responses:
-        '200':
-          description: Validasi berhasil. Mengembalikan data detail markup modal.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: boolean
-                    example: true
-                  data:
+                    example: "ORD-202600001"
+                  invoice_url:
                     type: string
-                    description: HTML markup modal dialog berisi rincian item, nickname hasil validasi, dan harga.
-                    example: "<div class='modal-body'>...</div>"
-
-  /id/invoices/{order}:
-    get:
-      summary: Ambil Detail Invoice
-      description: Mengambil data transaksi pemesanan tertentu beserta detail status pembayaran, instruksi pembayaran, dan detail produk.
-      parameters:
-        - name: order
-          in: path
-          required: true
-          description: Kode order invoice transaksi (order_id).
-          schema:
-            type: string
-          example: "MSTP123456"
-      responses:
-        '200':
-          description: Rincian invoice berhasil ditemukan.
-        '404':
-          description: Invoice tidak ditemukan.
-
-  /id/invoices/{order}/status:
-    get:
-      summary: Cek Status Pembelian
-      description: Digunakan secara asinkron (AJAX polling) oleh halaman invoice untuk melacak status transaksi secara real-time.
-      parameters:
-        - name: order
-          in: path
-          required: true
-          description: Kode order invoice (order_id).
-          schema:
-            type: string
-          example: "MSTP123456"
-      responses:
-        '200':
-          description: Status transaksi saat ini.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
+                    example: "https://tripay.co.id/..."
+                  payment_method:
+                    type: string
+                    example: "QRIS"
                   status:
                     type: string
-                    description: Status transaksi (Pending/Proses/Sukses/Batal)
-                    example: "Sukses"
+                    example: "UNPAID"
+        '400':
+          description: Gagal (HTTP 400 Bad Request)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "Data transaksi tidak lengkap."
 
   /callback/tripay:
     post:
-      summary: Callback Webhook Tripay Payment Gateway
-      description: Endpoint yang dipanggil oleh server Tripay untuk mengonfirmasi status pembayaran transaksi closed payment secara asinkron.
-      headers:
-        X-Callback-Signature:
-          schema:
-            type: string
-          description: Signature HMAC-SHA256 yang dikirimkan Tripay untuk validasi keamanan request.
+      summary: Endpoint Callback Tripay
+      description: Menerima notifikasi pembayaran (webhook callback) secara asinkron dari Tripay dan memperbarui status transaksi menjadi PAID jika valid.
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
+              required:
+                - reference
+                - merchant_ref
+                - status
+                - signature
               properties:
                 reference:
                   type: string
-                  description: Referensi unik transaksi di sistem Tripay.
-                  example: "T422650000001"
+                  description: Kode referensi unik pembayaran dari Tripay.
+                  example: "T123456789"
                 merchant_ref:
                   type: string
-                  description: ID Order di sistem Mustopup (order_id).
-                  example: "MSTP123456"
+                  description: Kode invoice/Order ID di sistem Mustopup.
+                  example: "ORD-202600001"
                 status:
                   type: string
-                  description: Status transaksi dari Tripay.
-                  enum: [PAID, EXPIRED, FAILED]
+                  description: Status pembayaran terbaru.
                   example: "PAID"
-                amount:
-                  type: number
-                  description: Jumlah nominal pembayaran.
-                  example: 52000
+                signature:
+                  type: string
+                  description: Signature HMAC-SHA256 untuk memverifikasi keaslian pengirim callback.
+                  example: "xxxxxxxxxxxxxxxx"
       responses:
         '200':
-          description: Callback diterima dan antrean pengiriman produk dipicu.
+          description: Berhasil (HTTP 200 OK)
           content:
             application/json:
               schema:
@@ -269,46 +129,51 @@ paths:
                     example: true
                   message:
                     type: string
-                    example: "Payment verified and queued"
+                    example: "Webhook berhasil diproses."
+        '403':
+          description: Ditolak (HTTP 403 Forbidden)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "Signature tidak valid."
 
   /callback/digiflazz:
     post:
-      summary: Callback Webhook Digiflazz Provider
-      description: Endpoint yang dipanggil oleh server Digiflazz untuk mengonfirmasi pengiriman serial number atau status transaksi produk digital yang dibeli.
-      headers:
-        X-Hub-Signature:
-          schema:
-            type: string
-          description: Tanda tangan digital untuk memverifikasi keaslian pengirim data.
+      summary: Endpoint Callback Digiflazz
+      description: Menerima hasil pemrosesan transaksi dari Digiflazz setelah proses top-up selesai dilakukan, memperbarui status pesanan, dan menyimpan Serial Number (SN).
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
+              required:
+                - ref_id
+                - status
+                - sn
               properties:
-                data:
-                  type: object
-                  properties:
-                    ref_id:
-                      type: string
-                      description: Kode order invoice (order_id) yang dikirim ke Digiflazz.
-                      example: "MSTP123456"
-                    status:
-                      type: string
-                      description: Status pengisian dari Digiflazz (Sukses/Gagal).
-                      example: "Sukses"
-                    sn:
-                      type: string
-                      description: Serial Number transaksi top-up atau token.
-                      example: "9827-1829-1928-SN"
-                    price:
-                      type: number
-                      description: Harga beli dari Digiflazz.
-                      example: 49000
+                ref_id:
+                  type: string
+                  description: Kode invoice/Order ID di sistem Mustopup.
+                  example: "ORD-202600001"
+                status:
+                  type: string
+                  description: Status transaksi dari Digiflazz (Sukses/Gagal).
+                  example: "Sukses"
+                sn:
+                  type: string
+                  description: Serial Number (SN) bukti pengiriman voucher/topup.
+                  example: "MLBB-987654321"
       responses:
         '200':
-          description: Status callback berhasil dicatat dan status transaksi di-update.
+          description: Berhasil (HTTP 200 OK)
           content:
             application/json:
               schema:
@@ -319,4 +184,109 @@ paths:
                     example: true
                   message:
                     type: string
-                    example: "Invoice updated"
+                    example: "Status transaksi diperbarui."
+        '400':
+          description: Gagal (HTTP 400 Bad Request)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "Data callback tidak valid."
+
+  /invoice/{id}:
+    get:
+      summary: Endpoint Detail Invoice
+      description: Menampilkan informasi pembayaran detail berdasarkan Order ID/invoice ID.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Order ID dari transaksi.
+          schema:
+            type: string
+          example: "ORD-202600001"
+      responses:
+        '200':
+          description: Berhasil (HTTP 200 OK)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  order_id:
+                    type: string
+                    example: "ORD-202600001"
+                  status:
+                    type: string
+                    example: "PAID"
+                  payment_method:
+                    type: string
+                    example: "QRIS"
+                  amount:
+                    type: integer
+                    example: 50000
+                  serial_number:
+                    type: string
+                    example: "MLBB-987654321"
+        '404':
+          description: Gagal (HTTP 404 Not Found)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "Invoice tidak ditemukan."
+
+  /history:
+    get:
+      summary: Endpoint Riwayat Transaksi
+      description: Menampilkan sepuluh data riwayat transaksi terakhir yang dimiliki oleh pengguna.
+      responses:
+        '200':
+          description: Berhasil (HTTP 200 OK)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        order_id:
+                          type: string
+                          example: "ORD-202600001"
+                        status:
+                          type: string
+                          example: "SUCCESS"
+                        amount:
+                          type: integer
+                          example: 50000
+        '403':
+          description: Ditolak (HTTP 403 Forbidden)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "Unauthorized."
