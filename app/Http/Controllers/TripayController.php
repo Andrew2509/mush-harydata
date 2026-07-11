@@ -236,6 +236,7 @@ class TripayController extends Controller
                     ]);
                 }
             } else if ($dataPembeli) {
+                $is_queued = false;
                 $dataLayanan = \App\Models\Layanan::where('layanan', $dataPembeli->layanan)->first();
                 
                 if ($dataLayanan) {
@@ -271,7 +272,7 @@ class TripayController extends Controller
                             
                             $this->msg($invoice->no_pembeli, $pesanPembeli);
 
-                            $orderStatus = false;
+                            $is_queued = true;
                         } catch (\Exception $e) {
                             Log::error('Digiflazz FCFS Queue Exception', [
                                 'order_id' => $order_id,
@@ -281,7 +282,7 @@ class TripayController extends Controller
                                 'status' => 'Batal',
                                 'log' => json_encode(['error' => $e->getMessage()])
                             ]);
-                            $orderStatus = false;
+                            $is_queued = true;
                         }
                     } elseif ($dataLayanan->provider == "topupedia") {
                         $topupedia = new \App\Http\Controllers\provider\topupedia\TopupediaController;
@@ -318,43 +319,44 @@ class TripayController extends Controller
                         $orderTransactionId = '';
                     }
 
-                    if ($orderStatus) {
-                        $dataPembeli->update([
-                            'provider_order_id' => $orderTransactionId ?? 0,
-                            'status' => 'Proses',
-                            'log' => json_encode($order ?? [])
-                        ]);
-                        
-                        Log::info('Tripay Callback: Order berhasil dikirim ke provider', [
-                            'order_id' => $order_id,
-                            'provider' => $dataLayanan->provider,
-                            'provider_order_id' => $orderTransactionId ?? ''
-                        ]);
+                    if (!$is_queued) {
+                        if ($orderStatus) {
+                            $dataPembeli->update([
+                                'provider_order_id' => $orderTransactionId ?? 0,
+                                'status' => 'Proses',
+                                'log' => json_encode($order ?? [])
+                            ]);
+                            
+                            Log::info('Tripay Callback: Order berhasil dikirim ke provider', [
+                                'order_id' => $order_id,
+                                'provider' => $dataLayanan->provider,
+                                'provider_order_id' => $orderTransactionId ?? ''
+                            ]);
 
-                        $pesanPembeli = 
-                            "*Pembayaran Berhasil*\n\n" .
-                            "No Invoice: *$order_id*\n" .
-                            "Layanan : *$dataPembeli->layanan*\n" .
-                            "ID : *$dataPembeli->user_id*\n" .
-                            "Server : *$dataPembeli->zone*\n" .
-                            "Nickname : *$dataPembeli->nickname*\n" .
-                            "Harga : *Rp. " . number_format($dataPembeli->harga, 0, '.', ',') . "*\n" .
-                            "Status Pembelian: *Process*\n" .
-                            "Estimasi Proses: *1-5 Menit Max 24 Jam*\n\n" .
-                            "INI ADALAH PESAN OTOMATIS";
-                        
-                        $this->msg($invoice->no_pembeli, $pesanPembeli);
-                    } else {
-                        Log::error('Tripay Callback: Order GAGAL dikirim ke provider', [
-                            'order_id' => $order_id,
-                            'provider' => $dataLayanan->provider,
-                            'response' => $order ?? []
-                        ]);
+                            $pesanPembeli = 
+                                "*Pembayaran Berhasil*\n\n" .
+                                "No Invoice: *$order_id*\n" .
+                                "Layanan : *$dataPembeli->layanan*\n" .
+                                "ID : *$dataPembeli->user_id*\n" .
+                                "Server : *$dataPembeli->zone*\n" .
+                                "Nickname : *$dataPembeli->nickname*\n" .
+                                "Harga : *Rp. " . number_format($dataPembeli->harga, 0, '.', ',') . "*\n" .
+                                "Status Pembelian: *Process*\n" .
+                                "Estimasi Proses: *1-5 Menit Max 24 Jam*\n\n" .
+                                "INI ADALAH PESAN OTOMATIS";
+                            
+                            $this->msg($invoice->no_pembeli, $pesanPembeli);
+                        } else {
+                            Log::error('Tripay Callback: Order GAGAL dikirim ke provider', [
+                                'order_id' => $order_id,
+                                'provider' => $dataLayanan->provider,
+                                'response' => $order ?? []
+                            ]);
 
-                        $dataPembeli->update([
-                            'status' => 'Batal',
-                            'log' => json_encode($order ?? [])
-                        ]);
+                            $dataPembeli->update([
+                                'status' => 'Batal',
+                                'log' => json_encode($order ?? [])
+                            ]);
 
                         // Refund otomatis ke saldo user jika terdaftar
                         if (!empty($dataPembeli->username)) {
