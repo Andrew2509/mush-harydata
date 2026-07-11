@@ -43,11 +43,14 @@ class ProcessTopupJob implements ShouldQueue
             'provider_order_id' => $this->orderId,
         ]);
 
+        $layanan = \App\Models\Layanan::where('layanan', $pembelian->layanan)->first();
+        $skuCode = $layanan ? $layanan->provider_id : $pembelian->layanan;
+
         $digiFlazz = new digiFlazzController();
         $response = $digiFlazz->order(
             $pembelian->user_id,
             $pembelian->zone,
-            $pembelian->layanan,
+            $skuCode,
             $pembelian->order_id
         );
 
