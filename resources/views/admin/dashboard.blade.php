@@ -797,6 +797,77 @@
         </div>
     </div>
 
+    {{-- ===== FCFS ACTIVE QUEUE ===== --}}
+    <div class="dash-section-title">
+        <div class="section-icon" style="background:rgba(0,240,255,0.08); color:#00f0ff;">
+            <i class="fas fa-list-ol"></i>
+        </div>
+        <span>Antrean Aktif FCFS (First-Come First-Served)</span>
+        <div class="section-line"></div>
+    </div>
+
+    <div class="tx-table-wrap mb-4">
+        <div class="tx-table-header">
+            <div class="tx-title">
+                <i class="fas fa-clock" style="color:#ff9f00;"></i>
+                <span>DAFTAR ANTRIAN TRANSAKSI AKTIF (DIGIFLAZZ)</span>
+            </div>
+            <a href="{{ route('admin.latency') }}" class="btn-print">
+                <i class="fas fa-chart-line"></i> Analisis Latensi
+            </a>
+        </div>
+        <div style="overflow-x:auto;">
+            <table class="tx-table" id="fcfsQueueTable">
+                <thead>
+                    <tr>
+                        <th>Urutan</th>
+                        <th>Order ID</th>
+                        <th>User ID</th>
+                        <th>Layanan</th>
+                        <th>Nickname</th>
+                        <th>Waktu Callback</th>
+                        <th>Status Antrean</th>
+                    </tr>
+                </thead>
+                <tbody id="fcfsQueueBody">
+                    @if(isset($fcfs_queue) && count($fcfs_queue) > 0)
+                        @foreach($fcfs_queue as $index => $q)
+                        <tr>
+                            <td style="font-weight:bold; color:#ff9f00; font-family:'Orbitron',sans-serif;">#{{ $index + 1 }}</td>
+                            <td style="font-family:'Orbitron',sans-serif; font-size:0.72rem; color:var(--accent-cyan);">{{ $q->order_id }}</td>
+                            <td>{{ $q->user_id }}{{ $q->zone ? ' ('.$q->zone.')' : '' }}</td>
+                            <td>{{ $q->layanan }}</td>
+                            <td style="font-size:0.78rem; color:var(--text-secondary);">{{ $q->nickname ?? '-' }}</td>
+                            <td style="font-size:0.78rem; color:var(--text-muted);">{{ $q->waktu_callback ? \Carbon\Carbon::parse($q->waktu_callback)->format('d M Y H:i:s') : '-' }}</td>
+                            <td>
+                                @php
+                                    $statusClass = 'pending';
+                                    $statusLabel = 'Dalam Antrean';
+                                    if(strtolower($q->status) == 'proses') {
+                                        $statusClass = 'completed';
+                                        $statusLabel = 'Sedang Diproses';
+                                    }
+                                @endphp
+                                <span class="status-badge {{ $statusClass }}">
+                                    <span class="status-dot"></span>
+                                    {{ $statusLabel }}
+                                </span>
+                            </td>
+                        </tr>
+                        @endforeach
+                    @else
+                        <tr>
+                            <td colspan="7" style="text-align:center; padding:2rem; color:var(--text-muted);">
+                                <i class="fas fa-check-circle" style="color:#39ff14; font-size:1.5rem; margin-bottom:8px; display:block;"></i>
+                                Semua antrean kosong. Seluruh transaksi telah selesai diproses!
+                            </td>
+                        </tr>
+                    @endif
+                </tbody>
+            </table>
+        </div>
+    </div>
+
     {{-- ===== RECENT TRANSACTIONS ===== --}}
     <div class="dash-section-title">
         <div class="section-icon" style="background:rgba(255,136,0,0.08); color:#ff8800;">

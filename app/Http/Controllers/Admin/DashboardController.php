@@ -120,6 +120,15 @@ class DashboardController extends Controller
             ->take(10)
             ->get();
 
+        // --- FCFS Active Queue (status 'Paid' or 'Proses' for digiflazz ordered by waktu_callback) ---
+        $fcfs_queue = Pembelian::whereIn('pembelians.status', ['Paid', 'Proses'])
+            ->join('layanans', 'pembelians.layanan', '=', 'layanans.layanan')
+            ->where('layanans.provider', 'digiflazz')
+            ->select('pembelians.*')
+            ->orderBy('pembelians.waktu_callback', 'asc')
+            ->take(10)
+            ->get();
+
         // --- Popular Games (top 5 categories by real purchase count via join) ---
         $popular_games = Kategori::select('kategoris.nama', 'kategoris.thumbnail', DB::raw('count(pembelians.id) as total_topups'))
             ->leftJoin('layanans', 'layanans.kategori_id', '=', 'kategoris.id')
@@ -165,6 +174,7 @@ class DashboardController extends Controller
             'total_services' => $total_services,
             'visitor_chart' => json_encode($visitorChartData),
             'recent_transactions' => $recent_transactions,
+            'fcfs_queue' => $fcfs_queue,
             'popular_games' => $popular_games,
         ]);
     }

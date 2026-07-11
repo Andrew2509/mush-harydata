@@ -1283,6 +1283,14 @@ a.bg-primary:hover, a.bg-primary:focus {
                 </ul>
             </li>
 
+            {{-- Swagger API Docs --}}
+            <li class="menu-item">
+                <a href="{{ url('/api-docs') }}" target="_blank" class="menu-link">
+                    <i class="menu-icon fas fa-code"></i>
+                    <div>Swagger API Docs</div>
+                </a>
+            </li>
+
             {{-- Pengaturan --}}
             <li class="menu-item {{ request()->is('setting/web') ? 'active' : '' }}">
                 <a href="{{ url('/setting/web') }}" class="menu-link">
