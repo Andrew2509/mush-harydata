@@ -29,7 +29,7 @@ class AdminLoginController extends Controller
     {
         $request->validate([
             'username' => 'required|string|max:255',
-            'password' => 'required|string|min:12',
+            'password' => 'required|string|min:8',
         ]);
 /*
 
