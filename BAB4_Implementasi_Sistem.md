@@ -274,78 +274,54 @@ REST API digunakan sebagai media integrasi data terstandarisasi. Implementasi RE
 
 ## 4.1.5 Implementasi FCFS Queue
 
-Implementasi metode **First Come First Served (FCFS)** pada aplikasi Mustopup dilakukan menggunakan **Laravel Queue** dengan **database driver**. Setiap transaksi yang telah berhasil dibayar melalui *payment gateway* akan dimasukkan ke dalam antrean (*queue*) untuk diproses secara berurutan sesuai waktu kedatangannya. Pendekatan ini bertujuan untuk menghindari pemrosesan transaksi secara bersamaan serta menjaga konsistensi data.
-
-### 4.1.5.1 Laravel Queue
-
-Laravel Queue digunakan untuk menjalankan proses transaksi secara *asynchronous* sehingga proses *top-up* tidak dilakukan secara langsung pada saat pengguna melakukan pembayaran di thread utama HTTP request. Hal ini menjaga kinerja aplikasi tetap responsif.
-
-**Gambar 4.3 Arsitektur Laravel Queue FCFS**
-
-*(Aset Gambar: [laravel_queue_flow.png](file:///E:/muslihinnnn%20(1)/harydata/assets/img/laravel_queue_flow.png))*
-
-*Penjelasan Gambar 4.3:*
-Gambar 4.3 menampilkan diagram alur pemrosesan antrean *asynchronous* pada Laravel Queue, di mana permintaan dari klien didelegasikan ke *queue handler* untuk dieksekusi di latar belakang tanpa menahan waktu muat halaman pengguna.
+Implementasi metode **First Come First Served (FCFS)** pada aplikasi Mustopup dilakukan menggunakan **Laravel Queue** dengan **database driver**. Setiap transaksi yang telah berhasil dibayar melalui *payment gateway* Tripay akan dimasukkan ke dalam antrean (*queue*) untuk diproses secara berurutan berdasarkan waktu transaksi diterima. Mekanisme ini memastikan setiap transaksi diproses sesuai prinsip **First Come First Served (FCFS)** sehingga tidak terjadi pemrosesan secara bersamaan yang dapat menyebabkan inkonsistensi data atau kegagalan API *rate-limit* pada provider Digiflazz.
 
 ---
 
-### 4.1.5.2 Database Driver
+### 4.1.5.1 Implementasi Laravel Queue
 
-Sistem menggunakan **database** sebagai *queue driver*. Seluruh antrean transaksi disimpan pada tabel `jobs` sehingga dapat diproses oleh *queue worker* secara berurutan sesuai prinsip FCFS. Konfigurasi ini diatur pada file konfigurasi `.env` dan `config/queue.php`.
+Laravel Queue digunakan untuk menjalankan proses *top-up* secara **asynchronous**. Setelah pembayaran berhasil diverifikasi oleh *webhook callback* Tripay, sistem tidak langsung mengirim permintaan pengisian produk game ke Digiflazz di dalam siklus HTTP request utama, tetapi mendaftarkannya terlebih dahulu ke antrean. Pendekatan ini memisahkan proses berat pengisian saldo game ke latar belakang sehingga pengguna memperoleh respons transaksi sukses dengan cepat tanpa perlu menunggu proses integrasi API provider yang memakan waktu.
+
+**Gambar 4.3 Struktur Berkas Implementasi Queue**
+
+*(Aset Gambar: [diagram_queue_implementation.html](file:///E:/muslihinnnn%20(1)/harydata/assets/diagram_queue_implementation.html))*
+
+*Penjelasan Gambar 4.3:*
+Gambar 4.3 menunjukkan struktur direktori dan letak file job `ProcessTopupJob.php` di dalam folder `app/Jobs/` yang bertindak sebagai pemroses pekerjaan di latar belakang aplikasi secara asinkron.
+
+---
+
+### 4.1.5.2 Konfigurasi Database Driver
+
+Untuk mengaktifkan antrean berbasis basis data, driver Laravel Queue dialihkan dari mode `sync` (default sinkron) menjadi `database`. Konfigurasi ini diatur dengan mengubah nilai parameter `QUEUE_CONNECTION` pada berkas `.env` aplikasi.
 
 ```ini
 QUEUE_CONNECTION=database
 ```
 
-**Gambar 4.4 Konfigurasi Database Queue pada File .env**
+**Gambar 4.4 Konfigurasi Driver Antrean pada Berkas .env**
 
 *(Aset Gambar: [konfigurasi_database_queue.png](file:///E:/muslihinnnn%20(1)/harydata/assets/img/konfigurasi_database_queue.png))*
 
 *Penjelasan Gambar 4.4:*
-Gambar 4.4 menunjukkan baris kode pada file `.env` di mana parameter `QUEUE_CONNECTION` diatur ke nilai `database` agar Laravel menggunakan driver basis data sebagai media penyimpanan sementara antrean pekerjaan (*job*).
+Gambar 4.4 menyajikan screenshot isi berkas konfigurasi `.env` aplikasi Mustopup yang mengaktifkan koneksi driver antrean menggunakan database MySQL.
+
+Konfigurasi ini memastikan bahwa setiap transaksi lunas yang didelegasikan ke queue akan disimpan terlebih dahulu ke dalam tabel basis data bernama `jobs` sebelum dieksekusi secara serial oleh queue worker.
 
 ---
 
-### 4.1.5.3 Supervisor
+### 4.1.5.3 Implementasi ProcessTopupJob
 
-Supervisor digunakan untuk menjaga proses **queue worker** (`php artisan queue:work`) tetap aktif di latar belakang server Hostinger. Supervisor akan mendeteksi apabila *process worker* mengalami crash atau terhenti, lalu melakukan *restart* secara otomatis. 
-
-```ini
-[program:laravel-worker]
-process_name=%(program_name)s_%(process_num)02d
-command=php /home/u543440860/domains/mustopup.com/public_html/artisan queue:work database --queue=topup --sleep=3 --tries=3
-autostart=true
-autorestart=true
-user=u543440860
-numprocs=1
-redirect_stderr=true
-stdout_logfile=/home/u543440860/domains/mustopup.com/public_html/storage/logs/worker.log
-```
-
-**Gambar 4.5 Konfigurasi Supervisor Service**
-
-*(Aset Gambar: [konfigurasi_supervisor.png](file:///E:/muslihinnnn%20(1)/harydata/assets/img/konfigurasi_supervisor.png))*
-
-*Penjelasan Gambar 4.5:*
-Gambar 4.5 menyajikan potongan file konfigurasi Supervisor daemon `/etc/supervisor/conf.d/laravel-worker.conf` yang menginstruksikan sistem operasi untuk terus menjalankan *queue worker* secara otomatis pada direktori `/home/u543440860/domains/mustopup.com/public_html/`.
-
-Sebagai alternatif pada layanan *shared hosting* Hostinger yang tidak memiliki akses root untuk menginstal Supervisor, pemrosesan antrean dijaga secara berkala menggunakan fitur **Cron Job** pada hPanel dengan konfigurasi waktu eksekusi setiap menit sebagai berikut:
-
-```bash
-* * * * * php /home/u543440860/domains/mustopup.com/public_html/artisan queue:work --queue=topup --stop-when-empty
-```
-
----
-
-### 4.1.5.4 ProcessTopupJob
-
-Kelas **ProcessTopupJob** (tersimpan di `app/Jobs/ProcessTopupJob.php`) berfungsi untuk memproses transaksi yang telah masuk ke antrean. Job ini bertanggung jawab mengirim permintaan *top-up* ke API Digiflazz serta memperbarui status transaksi menjadi `Proses`.
+Logika utama FCFS dideklarasikan di dalam kelas **ProcessTopupJob** pada berkas `app/Jobs/ProcessTopupJob.php`. Kelas ini memuat metode `handle()` yang bertugas memvalidasi kelayakan transaksi, mengunci status menjadi `Proses`, mengirim request API top-up ke `DigiFlazzController`, dan menangkap serta melempar pengecualian (*exception error*) jika response API menyatakan kegagalan.
 
 ```php
 public function handle()
 {
+    Log::info("Queue Started: Memulai pemrosesan antrean untuk Order ID: " . $this->orderId);
+
     $pembelian = Pembelian::where('order_id', $this->orderId)->first();
     if (!$pembelian || $pembelian->status !== 'Paid') {
+        Log::warning("Order ditolak dari antrean. Status bukan 'Paid' atau data tidak ada: " . $this->orderId);
         return;
     }
 
@@ -353,11 +329,12 @@ public function handle()
         'status' => 'Proses',
         'provider_order_id' => $this->orderId,
     ]);
+    Log::info("Processing Order: Status transaksi " . $this->orderId . " diubah ke 'Proses'.");
 
     $layanan = \App\Models\Layanan::where('layanan', $pembelian->layanan)->first();
     $skuCode = $layanan ? $layanan->provider_id : $pembelian->layanan;
 
-    $digiFlazz = new digiFlazzController();
+    $digiFlazz = new DigiFlazzController();
     $response = $digiFlazz->order(
         $pembelian->user_id,
         $pembelian->zone,
@@ -369,68 +346,86 @@ public function handle()
         'log' => json_encode($response)
     ]);
 
-    Log::info("FCFS Queue Executed Order: " . $this->orderId);
+    if (empty($response) || !isset($response['data'])) {
+        Log::error("Order Failed: Koneksi/Response API Digiflazz tidak valid untuk Order ID: " . $this->orderId);
+        throw new \Exception("Response dari Digiflazz tidak valid atau kosong: " . json_encode($response));
+    }
+
+    $statusResponse = $response['data']['status'] ?? 'Gagal';
+    if ($statusResponse === 'Gagal') {
+        Log::error("Order Failed: Pengiriman ke Digiflazz GAGAL untuk Order ID: " . $this->orderId);
+        throw new \Exception("Transaksi Digiflazz Gagal: " . ($response['data']['message'] ?? 'Unknown Error'));
+    }
+
+    Log::info("Order Success: Request order berhasil terkirim ke Digiflazz untuk Order ID: " . $this->orderId);
 }
 ```
 
-**Gambar 4.6 Implementasi Metode handle() pada ProcessTopupJob**
+**Gambar 4.5 Logika Pemrosesan Transaksi pada ProcessTopupJob**
 
 *(Aset Gambar: [implementasi_process_topup_job.png](file:///E:/muslihinnnn%20(1)/harydata/assets/img/implementasi_process_topup_job.png))*
 
-*Penjelasan Gambar 4.6:*
-Gambar 4.6 menyajikan struktur kode logika internal pada fungsi `handle()` di berkas `ProcessTopupJob.php`. Kode ini memicu perubahan status ke `Proses` dan memanggil kelas `digiFlazzController` secara berurutan.
+*Penjelasan Gambar 4.5:*
+Gambar 4.5 memperlihatkan potongan kode program metode `handle()` pada berkas `ProcessTopupJob.php` yang menguji keabsahan transaksi, memicu API Digiflazz, dan menangani pelemparan error jika transaksi bermasalah.
 
 ---
 
-### 4.1.5.5 Dispatch Job
+### 4.1.5.4 Dispatch Job
 
-Setelah pembayaran berhasil diverifikasi melalui *webhook* Tripay pada `TripayController`, sistem menjalankan proses **dispatch job** untuk memasukkan transaksi ke dalam antrean Laravel Queue dengan spesifikasi channel `topup`.
+Ketika sistem menerima notifikasi asinkron callback pembayaran lunas dari Tripay dengan parameter status bernilai `PAID`, sistem akan langsung memanggil perintah `dispatch` untuk mendaftarkan transaksi tersebut ke dalam saluran antrean khusus bernama `topup`.
 
 ```php
-// FCFS Queue Dispatching
+// Mendaftarkan transaksi ke antrean FCFS (FIFO channel 'topup')
 \App\Jobs\ProcessTopupJob::dispatch($order_id)->onQueue('topup');
 ```
 
-**Gambar 4.7 Dispatching ProcessTopupJob pada TripayController**
+**Gambar 4.6 Pemanggilan Dispatch Job pada TripayController**
 
 *(Aset Gambar: [dispatch_job_code.png](file:///E:/muslihinnnn%20(1)/harydata/assets/img/dispatch_job_code.png))*
 
-*Penjelasan Gambar 4.7:*
-Gambar 4.7 menampilkan baris program pada `TripayController.php` tempat dipicunya fungsi `dispatch()` untuk mengirim kode unik transaksi (`order_id`) ke antrean basis data segera setelah invoice berstatus lunas.
+*Penjelasan Gambar 4.6:*
+Gambar 4.6 menampilkan baris program `TripayController.php` tempat dipicunya fungsi `dispatch()` untuk meluncurkan transaksi dengan ID tertentu ke antrean segera setelah status pembayaran berstatus `Paid`.
 
 ---
 
-### 4.1.5.6 Worker Queue
+### 4.1.5.5 Queue Worker
 
-*Queue worker* bertugas mengambil transaksi dari tabel **jobs** dan memprosesnya satu per satu sesuai urutan antrean. Apabila terjadi kegagalan selama pemrosesan transaksi setelah 3 kali percobaan (*tries*), data transaksi akan dipindahkan ke tabel **failed_jobs** untuk proses analisis lanjut.
+*Queue Worker* dijalankan melalui CLI dengan perintah `php artisan queue:work`. Perintah ini memicu loop tak berujung (*daemon process*) yang memantau tabel `jobs` secara real-time. Worker mengambil job satu per satu berurutan menaik berdasarkan ID terendah (`ORDER BY id ASC`), yang merepresentasikan transaksi terlama yang masuk terlebih dahulu, memenuhinya, dan menghapusnya jika berhasil atau memindahkannya ke tabel `failed_jobs` jika gagal.
 
-**Gambar 4.8 Eksekusi Queue Worker pada Terminal**
+**Gambar 4.7 Aktivitas Queue Worker pada Terminal CLI**
 
 *(Aset Gambar: [terminal_queue_worker.png](file:///E:/muslihinnnn%20(1)/harydata/assets/img/terminal_queue_worker.png))*
 
-*Penjelasan Gambar 4.8:*
-Gambar 4.8 menunjukkan output terminal dari perintah `php artisan queue:work` yang memproses transaksi-transaksi top-up yang mengantre satu per satu secara serial sesuai urutan pendaftarannya.
+*Penjelasan Gambar 4.7:*
+Gambar 4.7 menyajikan screenshot terminal yang menampilkan output pengerjaan transaksi oleh `php artisan queue:work --queue=topup` yang diproses secara berurutan satu per satu.
 
-**Gambar 4.9 Data Pekerjaan pada Tabel jobs**
+---
+
+### 4.1.5.6 Hasil Implementasi FCFS Queue
+
+Hasil implementasi FCFS Queue terekam secara sistematis pada basis data relasional. Tabel `jobs` menyimpan antrean yang aktif mengantre, sedangkan tabel `failed_jobs` menyimpan data antrean yang gagal beserta dengan pesan kesalahannya (*exception log*).
+
+**Gambar 4.8 Data Antrean Aktif pada Tabel jobs**
 
 *(Aset Gambar: [tabel_jobs.png](file:///E:/muslihinnnn%20(1)/harydata/assets/img/tabel_jobs.png))*
 
-*Penjelasan Gambar 4.9:*
-Gambar 4.9 memperlihatkan data antrean aktif pada tabel `jobs` di database MySQL. Baris-baris ini direpresentasikan sebagai antrean yang menunggu giliran untuk dieksekusi berdasarkan nilai kolom `id` auto-increment.
+*Penjelasan Gambar 4.8:*
+Gambar 4.8 menunjukkan tabel `jobs` di phpMyAdmin yang berisi data payload serial transaksi lunas yang mengantre menunggu eksekusi dari worker.
 
-**Gambar 4.10 Data Kesalahan pada Tabel failed_jobs**
+**Gambar 4.9 Data Log Pekerjaan Gagal pada Tabel failed_jobs**
 
 *(Aset Gambar: [tabel_failed_jobs.png](file:///E:/muslihinnnn%20(1)/harydata/assets/img/tabel_failed_jobs.png))*
 
-*Penjelasan Gambar 4.10:*
-Gambar 4.10 menunjukkan baris data kesalahan pada tabel `failed_jobs` basis data MySQL. Tabel ini mencatat log pengecualian (*exception error*) serta payload data asli transaksi yang gagal dipenuhi.
+*Penjelasan Gambar 4.9:*
+Gambar 4.9 menyajikan screenshot tabel `failed_jobs` yang mengisolasi transaksi gagal beserta log rincian penyebab error agar tidak menyumbat antrean FCFS transaksi sehat lainnya.
 
-**Gambar 4.11 Aliran Log Transaksi Diproses Secara FIFO**
+**Gambar 4.10 Aliran Log Transaksi Diproses Secara FIFO**
 
 *(Aset Gambar: [log_fifo_transactions.png](file:///E:/muslihinnnn%20(1)/harydata/assets/img/log_fifo_transactions.png))*
 
-*Penjelasan Gambar 4.11:*
-Gambar 4.11 memperlihatkan log pencatatan transaksi di mana urutan eksekusi order (berdasarkan timestamp callback `waktu_callback`) bersesuaian dengan urutan keberangkatan request pengisian top-up ke Digiflazz (FIFO) tanpa ada transaksi yang saling mendahului.
+*Penjelasan Gambar 4.10:*
+Gambar 4.10 menyajikan log aplikasi pada `laravel.log` yang membuktikan bahwa pemrosesan antrean (`Queue Started`, `Processing Order`, `Order Success`) dilakukan secara berurutan sesuai urutan kedatangan transaksi (*First Come First Served*).
+
 ---
 
 ### 4.1.5.7 Simulasi Algoritma FCFS (Disk Scheduling)
@@ -461,23 +456,129 @@ foreach ($sequence as $index => $req) {
 
 Halaman simulasi ini menerima masukan berupa posisi awal head dan deretan antrean silinder (misalnya `98, 183, 37, 122, 14, 124, 65, 67` dengan posisi awal head `53`). Sistem kemudian memproses selisih absolut secara berurutan dan menghasilkan total pergerakan head sebesar `640` silinder beserta visualisasi grafiknya menggunakan *ApexCharts*.
 
-**Gambar 4.12 Halaman Input Parameter Simulasi FCFS**
+**Gambar 4.11 Halaman Input Parameter Simulasi FCFS**
 
 *(Aset Gambar: [fcfs_simulation_input.png](file:///E:/muslihinnnn%20(1)/harydata/assets/img/fcfs_simulation_input.png))*
 
-*Penjelasan Gambar 4.12:*
-Gambar 4.12 menampilkan antarmuka halaman simulasi FCFS pada dasbor admin. Halaman ini menyediakan form input posisi head awal dan deretan angka antrean silinder yang dipisahkan tanda koma.
+*Penjelasan Gambar 4.11:*
+Gambar 4.11 menampilkan antarmuka halaman simulasi FCFS pada dasbor admin. Halaman ini menyediakan form input posisi head awal dan deretan angka antrean silinder yang dipisahkan tanda koma.
 
-**Gambar 4.13 Grafik Seek Trajectory Hasil Perhitungan FCFS**
+**Gambar 4.12 Grafik Seek Trajectory Hasil Perhitungan FCFS**
 
 *(Aset Gambar: [fcfs_simulation_chart.png](file:///E:/muslihinnnn%20(1)/harydata/assets/img/fcfs_simulation_chart.png))*
 
-*Penjelasan Gambar 4.13:*
-Gambar 4.13 menampilkan grafik garis pergerakan head (*seek trajectory*) yang dihasilkan secara dinamis menggunakan ApexCharts berdasarkan hasil kalkulasi urutan pemrosesan antrean FCFS.
+*Penjelasan Gambar 4.12:*
+Gambar 4.12 menampilkan grafik garis pergerakan head (*seek trajectory*) yang dihasilkan secara dinamis menggunakan ApexCharts berdasarkan hasil kalkulasi urutan pemrosesan antrean FCFS.
 
 ---
 
-## 4.1.6 Implementasi Integrasi Tripay
+## 4.1.6 Implementasi Keamanan API
+
+Implementasi keamanan API bertujuan untuk melindungi komunikasi data antara aplikasi Mustopup dengan layanan pihak ketiga. Mekanisme keamanan diterapkan untuk memastikan bahwa setiap *request* dan *webhook callback* berasal dari sumber yang valid serta mencegah manipulasi data transaksi.
+
+---
+
+### 4.1.6.1 Signature Validation
+
+Setiap *webhook callback* dari Tripay akan melalui proses validasi *signature*. Validasi dilakukan dengan membandingkan nilai *signature* yang diterima dari Tripay dengan hasil perhitungan *signature* yang dibuat oleh sistem. Apabila kedua nilai tersebut sama, maka *request* dinyatakan valid dan dapat diproses lebih lanjut.
+
+**Gambar 4.13 Validasi Signature**
+
+*(Aset Gambar: [validasi_signature_code.png](file:///E:/muslihinnnn%20(1)/harydata/assets/img/validasi_signature_code.png))*
+
+*Penjelasan Gambar 4.13:*
+Gambar 4.13 menampilkan kode program pembandingan signature asinkron yang dikirim oleh server Tripay dengan signature yang dikalkulasikan secara lokal pada server Mustopup.
+
+---
+
+### 4.1.6.2 HMAC-SHA256
+
+Proses validasi *signature* menggunakan algoritma **HMAC-SHA256** dengan memanfaatkan *Private Key* yang diberikan oleh Tripay. Algoritma ini menghasilkan nilai *hash* berbasis kunci rahasia (*secret-key*) berdasarkan *raw JSON payload* sehingga integritas data dapat terjaga selama proses transmisi data.
+
+Contoh implementasi:
+```php
+$localSignature = hash_hmac(
+    'sha256',
+    $rawJsonPayload,
+    $privateKey
+);
+```
+
+**Gambar 4.14 Implementasi HMAC-SHA256**
+
+*(Aset Gambar: [implementasi_hmac_sha256.png](file:///E:/muslihinnnn%20(1)/harydata/assets/img/implementasi_hmac_sha256.png))*
+
+*Penjelasan Gambar 4.14:*
+Gambar 4.14 menyajikan penulisan fungsi enkripsi `hash_hmac` bermode SHA256 untuk memproses pencocokan integritas payload data callback.
+
+---
+
+### 4.1.6.3 IP Whitelist
+
+Sistem Mustopup memanfaatkan fitur **IP Whitelist** untuk menyaring alamat IP pengirim callback. Setiap *request* yang masuk akan diperiksa berdasarkan alamat IP asalnya. Hanya alamat IP Tripay dan Digiflazz resmi yang telah terdaftar dalam basis data yang diperbolehkan mengakses endpoint callback, sedangkan alamat IP asing lainnya akan langsung ditolak oleh sistem.
+
+**Gambar 4.15 Middleware Whitelist IP**
+
+*(Aset Gambar: [middleware_whitelist_ip.png](file:///E:/muslihinnnn%20(1)/harydata/assets/img/middleware_whitelist_ip.png))*
+
+*Penjelasan Gambar 4.15:*
+Gambar 4.15 menampilkan potongan kelas middleware `WhitelistIp` yang menarik daftar IP resmi dari tabel `whitelisted_ips` di database MySQL.
+
+---
+
+### 4.1.6.4 Middleware
+
+Middleware digunakan sebagai lapisan keamanan tambahan (*security wrapper*) sebelum *request* diteruskan ke *controller*. Middleware bertugas melakukan pemeriksaan kecocokan alamat IP pengirim secara asinkron sehingga hanya request dari IP terverifikasi yang bisa menyentuh logika controller utama.
+
+**Gambar 4.16 Implementasi Middleware**
+
+*(Aset Gambar: [registrasi_middleware_kernel.png](file:///E:/muslihinnnn%20(1)/harydata/assets/img/registrasi_middleware_kernel.png))*
+
+*Penjelasan Gambar 4.16:*
+Gambar 4.16 menunjukkan pendaftaran alias middleware keamanan `'whitelist.ip'` pada berkas `app/Http/Kernel.php` di Laravel.
+
+---
+
+### 4.1.6.5 Validasi Callback
+
+Setelah proses validasi signature dan IP berhasil dilewati, sistem memeriksa data *callback* yang diterima, seperti **merchant_ref**, **reference**, dan **status pembayaran**. Apabila status pembayaran bernilai **PAID**, sistem akan memperbarui status transaksi pada basis data dan mengirim *job* ke Laravel Queue untuk diproses.
+
+**Gambar 4.17 Validasi Callback**
+
+*(Aset Gambar: [controller_callback_tripay.png](file:///E:/muslihinnnn%20(1)/harydata/assets/img/controller_callback_tripay.png))*
+
+*Penjelasan Gambar 4.17:*
+Gambar 4.17 menyajikan kode penanganan parameter webhook Tripay pada `TripayController` yang meluncurkan proses antrean jika status bernilai lunas.
+
+---
+
+### 4.1.6.6 Log Keamanan
+
+Setiap *request* yang gagal melewati proses validasi signature atau terblokir oleh middleware akan dicatat ke dalam **laravel.log** sebagai log keamanan. Informasi yang dicatat meliputi waktu kejadian, alamat IP pengirim, dan pesan kesalahan. Log tersebut membantu administrator dalam melakukan pemantauan serta analisis apabila terjadi percobaan akses yang tidak sah.
+
+**Gambar 4.18 Log Keamanan**
+
+*(Aset Gambar: [log_keamanan_api.png](file:///E:/muslihinnnn%20(1)/harydata/assets/img/log_keamanan_api.png))*
+
+*Penjelasan Gambar 4.18:*
+Gambar 4.18 menampilkan log kesalahan `Tripay Callback: Invalid signature` lengkap dengan alamat IP pengirim di dalam file log sistem `storage/logs/laravel.log`.
+
+---
+
+### 4.1.6.7 Hasil Validasi
+
+Hasil pengujian menunjukkan bahwa mekanisme keamanan API berhasil memvalidasi setiap *request* yang masuk. *Request* dengan *signature* yang valid diproses oleh sistem, sedangkan *request* yang tidak valid ditolak dengan respon **HTTP 403 Forbidden** atau **HTTP 400 Bad Request** sehingga dapat mencegah manipulasi data transaksi.
+
+**Gambar 4.19 Hasil Validasi API**
+
+*(Aset Gambar: [security_403_response.png](file:///E:/muslihinnnn%20(1)/harydata/assets/img/security_403_response.png))*
+
+*Penjelasan Gambar 4.19:*
+Gambar 4.19 menyajikan respon penolakan akses (HTTP 403 Forbidden) ketika endpoint callback diakses secara ilegal oleh IP asing di luar whitelist.
+
+---
+
+## 4.1.7 Implementasi Integrasi Tripay
 
 Integrasi Tripay diimplementasikan pada [TripayController.php](file:///e:/muslihinnnn%20(1)/harydata/app/Http/Controllers/TripayController.php) untuk mengotomatisasi pembuatan tagihan belanja pembayaran secara *real-time*.
 
@@ -497,18 +598,18 @@ Response sukses dari API Tripay memuat parameter penting seperti `qr_url` (untuk
 
 ---
 
-**Gambar 4.14 Screenshot Transaksi Pembuatan Invoice di Tripay**
+**Gambar 4.20 Screenshot Transaksi Pembuatan Invoice di Tripay**
 
 *(Aset Gambar: [transaksi_tripay.png](file:///E:/muslihinnnn%20(1)/harydata/assets/img/transaksi_tripay.png))*
 
-*Penjelasan Gambar 4.14:*
-Gambar 4.14 merupakan screenshot dashboard merchant Tripay yang menampilkan data invoice transaksi pembayaran. Halaman ini menunjukkan status transaksi lunas (*PAID*), kode referensi unik Tripay, metode transfer bank VA, dan detail jumlah tagihan pembayaran.
+*Penjelasan Gambar 4.20:*
+Gambar 4.20 merupakan screenshot dashboard merchant Tripay yang menampilkan data invoice transaksi pembayaran. Halaman ini menunjukkan status transaksi lunas (*PAID*), kode referensi unik Tripay, metode transfer bank VA, dan detail jumlah tagihan pembayaran.
 
 ---
 
-## 4.1.7 Implementasi Integrasi Digiflazz
+## 4.1.8 Implementasi Integrasi Digiflazz
 
-Digiflazz diimplementasikan pada berkas [digiFlazzController.php](file:///e:/muslihinnnn%20(1)/harydata/app/Http/Controllers/digiFlazzController.php) untuk mengirimkan item *virtual game* digital secara otomatis ketika order dinyatakan lunas.
+Digiflazz diimplementasikan pada berkas [DigiFlazzController.php](file:///e:/muslihinnnn%20(1)/harydata/app/Http/Controllers/DigiFlazzController.php) untuk mengirimkan item *virtual game* digital secara otomatis ketika order dinyatakan lunas.
 
 ### 1. Request Topup
 Request dikirim dengan format payload JSON menggunakan HTTP client Laravel POST menuju alamat URL `https://api.digiflazz.com/v1/transaction`.
@@ -527,16 +628,16 @@ API Digiflazz akan mengembalikan response JSON berisi parameter `status` awal tr
 
 ---
 
-**Gambar 4.15 Screenshot Response Transaksi H2H Digiflazz**
+**Gambar 4.21 Screenshot Response Transaksi H2H Digiflazz**
 
 *(Aset Gambar: [response_digiflazz.png](file:///E:/muslihinnnn%20(1)/harydata/assets/img/response_digiflazz.png))*
 
-*Penjelasan Gambar 4.15:*
-Gambar 4.15 menyajikan screenshot data response mentah (JSON) dari server Digiflazz. Data memuat parameter status pesanan `Success` lengkap dengan pencantuman *Serial Number* (SN) pengiriman token item game ke akun pembeli.
+*Penjelasan Gambar 4.21:*
+Gambar 4.21 menyajikan screenshot data response mentah (JSON) dari server Digiflazz. Data memuat parameter status pesanan `Success` lengkap dengan pencantuman *Serial Number* (SN) pengiriman token item game ke akun pembeli.
 
 ---
 
-## 4.1.8 Implementasi Webhook
+## 4.1.9 Implementasi Webhook
 
 Webhook diimplementasikan untuk menangani notifikasi asinkron dari Tripay dan Digiflazz saat terjadi perubahan status transaksi secara instan.
 
@@ -547,14 +648,96 @@ Saat pembeli menyelesaikan pembayaran di aplikasi dompet digital atau mobile ban
 
 ### 2. Callback Digiflazz
 Saat transaksi top-up selesai dikirimkan ke server game oleh Digiflazz, server Digiflazz akan mengirim callback POST ke `/digi/callback/haryserver` dengan membawa header parameter `X-Hub-Signature` (HMAC-SHA1).
-* Jika status update bernilai `Sukses`, status pembelian diubah menjadi `Sukses` pada database, dan notifikasi nomor voucher/Serial Number (SN) dikirimkan via WhatsApp.
-* Jika status update bernilai `Gagal`, sistem memicu metode `handleRefund()` untuk melakukan pengembalian saldo balance kepada akun pengguna terdaftar, atau mencatat log pada tabel `pending_refunds` untuk guest user agar dana dapat direfund manual oleh admin.
+* If status update bernilai `Sukses`, status pembelian diubah menjadi `Sukses` pada database, dan notifikasi nomor voucher/Serial Number (SN) dikirimkan via WhatsApp.
+* If status update bernilai `Gagal`, sistem memicu metode `handleRefund()` untuk melakukan pengembalian saldo balance kepada akun pengguna terdaftar, atau mencatat log pada tabel `pending_refunds` untuk guest user agar dana dapat direfund manual oleh admin.
 
 ---
 
-**Gambar 4.16 Screenshot Payload Webhook Callback**
+**Gambar 4.22 Screenshot Payload Webhook Callback**
 
 *(Aset Gambar: [payload_webhook.png](file:///E:/muslihinnnn%20(1)/harydata/assets/img/payload_webhook.png))*
 
-*Penjelasan Gambar 4.16:*
-Gambar 4.16 menyajikan screenshot payload data callback webhook yang diterima secara asinkron dari Tripay dan Digiflazz. Payload ini membawa data status final pembayaran dan Serial Number pengiriman voucher game yang sukses diproses.
+*Penjelasan Gambar 4.22:*
+Gambar 4.22 menyajikan screenshot payload data callback webhook yang diterima secara asinkron dari Tripay dan Digiflazz. Payload ini membawa data status final pembayaran dan Serial Number pengiriman voucher game yang sukses diproses.
+
+---
+
+# 4.2 Pengujian Sistem
+
+Pengujian sistem dilakukan untuk memverifikasi fungsionalitas dan kinerja aplikasi Mustopup setelah melalui tahap implementasi. Tahap ini bertujuan mendeteksi kesalahan, menguji kepatuhan sistem terhadap skenario fungsional yang dirancang, serta menjamin bahwa seluruh fitur keamanan dan integrasi API berjalan dengan baik.
+
+---
+
+## 4.2.1 Black Box Testing
+
+Pengujian *Black Box Testing* dilakukan untuk memastikan seluruh fungsi pada aplikasi Mustopup berjalan sesuai dengan kebutuhan fungsional. Pengujian dilakukan dengan memberikan masukan (*input*) pada setiap fitur tanpa memperhatikan struktur kode program. Hasil pengujian menunjukkan bahwa seluruh fitur utama dapat berjalan sesuai dengan yang diharapkan.
+
+**Tabel 4.1 Hasil Pengujian Black Box**
+
+| No | Fitur                   | Skenario Pengujian                 | Hasil yang Diharapkan         | Hasil Pengujian | Status   |
+| -- | ----------------------- | ---------------------------------- | ----------------------------- | --------------- | -------- |
+| 1  | Login Admin             | Login menggunakan akun valid       | Berhasil masuk ke dashboard   | Sesuai harapan  | Berhasil |
+| 2  | Registrasi Member       | Mengisi seluruh data dengan benar  | Akun berhasil dibuat          | Sesuai harapan  | Berhasil |
+| 3  | Login Member            | Login menggunakan akun terdaftar   | Berhasil masuk                | Sesuai harapan  | Berhasil |
+| 4  | Pilih Produk            | Memilih produk game                | Detail produk tampil          | Sesuai harapan  | Berhasil |
+| 5  | Checkout                | Mengisi data akun game             | Invoice berhasil dibuat       | Sesuai harapan  | Berhasil |
+| 6  | Pembayaran Tripay       | Melakukan pembayaran QRIS          | Invoice berstatus UNPAID      | Sesuai harapan  | Berhasil |
+| 7  | Callback Tripay         | Callback diterima sistem           | Status berubah menjadi PAID   | Sesuai harapan  | Berhasil |
+| 8  | Order Digiflazz         | Sistem mengirim order ke Digiflazz | Order berhasil diproses       | Sesuai harapan  | Berhasil |
+| 9  | Callback Digiflazz      | Serial number diterima             | Invoice selesai               | Sesuai harapan  | Berhasil |
+| 10 | Riwayat Transaksi       | Membuka halaman riwayat            | Data transaksi tampil         | Sesuai harapan  | Berhasil |
+| 11 | Dashboard Admin         | Membuka dashboard                  | Statistik tampil              | Sesuai harapan  | Berhasil |
+| 12 | REST API Invoice        | Mengakses endpoint `/invoice/{id}` | Data invoice ditampilkan      | Sesuai harapan  | Berhasil |
+| 13 | REST API History        | Mengakses endpoint `/history`      | Riwayat transaksi ditampilkan | Sesuai harapan  | Berhasil |
+| 14 | Validasi Signature      | Signature tidak valid              | Request ditolak               | Sesuai harapan  | Berhasil |
+| 15 | Middleware IP Whitelist | IP tidak terdaftar                 | Akses ditolak (403)           | Sesuai harapan  | Berhasil |
+
+Berdasarkan hasil *Black Box Testing* pada Tabel 4.1, seluruh fitur utama aplikasi Mustopup dapat berfungsi sesuai dengan kebutuhan sistem. Tidak ditemukan kesalahan fungsional selama proses pengujian sehingga aplikasi dinyatakan telah memenuhi kebutuhan fungsional yang dirancang.
+
+---
+
+## 4.2.2 Boundary Value Analysis (BVA)
+
+Pengujian *Boundary Value Analysis (BVA)* dilakukan untuk menguji kehandalan sistem dalam menangani input data pada batas nilai minimum dan maksimum yang telah didefinisikan. Pengujian ini berfokus pada nilai-nilai ekstrem (tepi) untuk meminimalkan risiko terjadinya *error* atau celah keamanan akibat input data yang tidak valid.
+
+### 4.2.2.1 Tabel Pengujian BVA
+
+Variabel input yang diuji menggunakan metode BVA meliputi panjang karakter User ID (`uid`), format nomor WhatsApp (`nomor`), nominal jumlah deposit (`jumlah`), dan panjang serta kombinasi karakter kata sandi (`password`) pada sistem registrasi dan profil.
+
+**Tabel 4.2 Hasil Pengujian Boundary Value Analysis**
+
+| No | Parameter Input | Nilai Batas (BVA) | Nilai Uji | Hasil yang Diharapkan | Hasil Pengujian | Status |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| 1 | Panjang User ID (`uid`) | Maksimal 25 Karakter | 24 Karakter | Request diterima (Valid) | Sesuai harapan | Berhasil |
+| 2 | Panjang User ID (`uid`) | Maksimal 25 Karakter | 25 Karakter | Request diterima (Valid) | Sesuai harapan | Berhasil |
+| 3 | Panjang User ID (`uid`) | Maksimal 25 Karakter | 26 Karakter | Request ditolak (Error validasi) | Sesuai harapan | Berhasil |
+| 4 | Jumlah Deposit (`jumlah`) | Minimal Rp 1 | Rp 0 | Request ditolak (Error: Jumlah tidak valid) | Sesuai harapan | Berhasil |
+| 5 | Jumlah Deposit (`jumlah`) | Minimal Rp 1 | Rp 1 | Request diterima (Valid) | Sesuai harapan | Berhasil |
+| 6 | Jumlah Deposit (`jumlah`) | Minimal Rp 1 | Rp 10.000 | Request diterima (Valid) | Sesuai harapan | Berhasil |
+| 7 | No WhatsApp (`nomor`) | Harus Numerik | "0812345678" | Request diterima (Valid) | Sesuai harapan | Berhasil |
+| 8 | No WhatsApp (`nomor`) | Harus Numerik | "0812-345-67" | Request ditolak (Error: Harus angka) | Sesuai harapan | Berhasil |
+| 9 | Panjang Password | Minimal 12 Karakter | "Pass1234567" (11 karakter) | Request ditolak (Error: Minimal 12) | Sesuai harapan | Berhasil |
+| 10 | Panjang Password | Minimal 12 Karakter | "Passphrase12!" (13 karakter) | Request diterima (Valid) | Sesuai harapan | Berhasil |
+| 11 | Kombinasi Password | Huruf besar, kecil, angka, simbol | "hanyahurufkecil" (16 karakter) | Request ditolak (Error: Kombinasi karakter) | Sesuai harapan | Berhasil |
+
+---
+
+### 4.2.2.2 Hasil Pengujian BVA
+
+Hasil pengujian BVA menunjukkan bahwa sistem Laravel secara konsisten melakukan validasi input pada batas-batas nilai yang telah ditentukan:
+1. **Validasi Karakter**: Input User ID (`uid`) dengan batas maksimal 25 karakter berhasil menyaring input berlebih (26 karakter) dengan mengembalikan pesan kesalahan bawaan validator Laravel.
+2. **Validasi Nominal**: Jumlah input deposit di bawah batas minimum Rp 1 (yaitu Rp 0 atau minus) berhasil dihentikan oleh aturan `min:1` pada validator `DepositController` dengan mengembalikan pesan error *"Jumlah tidak valid"*.
+3. **Validasi Tipe Data**: Input nomor telepon yang mengandung karakter non-angka berhasil dieliminasi dengan aturan `numeric`.
+4. **Validasi Kompleksitas Password**: Input sandi di bawah 12 karakter atau yang tidak memiliki perpaduan huruf kapital, huruf kecil, angka, dan simbol khusus berhasil ditolak dengan pesan kesalahan kustom *"Panjang password/frasa sandi minimal 12 karakter"* dan *"Password harus berupa frasa sandi (passphrase) yang memadukan huruf kapital, huruf kecil, angka, dan simbol"*.
+
+---
+
+### 4.2.2.3 Analisis Pengujian BVA
+
+Berdasarkan analisis hasil pengujian BVA pada Tabel 4.2, sistem aplikasi Mustopup terbukti memiliki tingkat kehandalan input yang tinggi (*robustness*). Validasi batas nilai pada tingkat controller berfungsi secara preventif untuk:
+* Mencegah terjadinya *database overflow* atau inkonsistensi skema data akibat input panjang karakter yang melebihi kapasitas kolom basis data.
+* Mencegah manipulasi nominal negatif pada transaksi keuangan (deposit saldo) yang dapat merugikan penyedia platform.
+* Menjamin keakuratan data pengiriman notifikasi WhatsApp dengan mewajibkan format numerik bersih tanpa spasi atau tanda hubung.
+* Melindungi akun pengguna secara maksimal dari serangan *brute-force* atau tebakan kamus dengan mewajibkan penerapan frasa sandi (*passphrase*) yang panjang dan berkekuatan tinggi.
+
+Secara keseluruhan, pengujian BVA membuktikan bahwa sistem aplikasi Mustopup aman terhadap serangan *input injection* atau kesalahan entri data pada batas-batas kritis nilai parameter.

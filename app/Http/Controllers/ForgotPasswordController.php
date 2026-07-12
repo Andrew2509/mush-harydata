@@ -49,7 +49,10 @@ class ForgotPasswordController extends Controller
     {
         $request->validate([
             'username' => 'required',
-            'password' => 'required|string|min:6|confirmed',
+            'password' => 'required|string|min:12|confirmed|regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};\':\",.<>\/?]).+$/',
+        ], [
+            'password.min' => 'Panjang password/frasa sandi minimal 12 karakter.',
+            'password.regex' => 'Password harus berupa frasa sandi (passphrase) yang memadukan huruf kapital, huruf kecil, angka, dan simbol.',
         ]);
 
         if (!Session::has('forgot_otp_verified') || Session::get('forgot_otp_verified') !== true) {

@@ -25,7 +25,7 @@ class MemberController extends Controller
             'nama' => 'required',
             'username' => 'required|min:3|unique:users,username|max:255',
             'email' => 'required|email|unique:users,email|max:255',
-            'password' => 'required|min:8|max:255',
+            'password' => 'required|min:12|regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};\':\",.<>\/?]).+$/',
             'no_wa' => 'required|numeric|unique:users,no_wa',
             'role' => 'required'
         ], [
@@ -37,9 +37,9 @@ class MemberController extends Controller
             'email.required' => 'Harap isi kolom email!',
             'email.email' => 'Email tidak valid!',
             'email.unique' => 'Email telah digunakan!',
-            'password' => 'Harap isi kolom password',
-            'password.min' => 'Panjang password minimal 8 huruf',
-            'passowrd.max' => 'Panjang password maximal 255 huruf',
+            'password.required' => 'Harap isi kolom password',
+            'password.min' => 'Panjang password/frasa sandi minimal 12 karakter.',
+            'password.regex' => 'Password harus berupa frasa sandi (passphrase) yang memadukan huruf kapital, huruf kecil, angka, dan simbol.',
             'no_wa.required' => 'No Whatsapp harus diisi!',
             'no_wa.numeric' => 'No Whatsapp tidak valid',
             'no_wa.unique' => 'No whatsapp telah digunakan'
