@@ -1148,6 +1148,14 @@ a.bg-primary:hover, a.bg-primary:focus {
                 </a>
             </li>
 
+            {{-- FCFS Simulation --}}
+            <li class="menu-item {{ request()->is('admin/fcfs*') ? 'active' : '' }}">
+                <a href="{{ route('admin.fcfs.index') }}" class="menu-link">
+                    <i class="menu-icon fas fa-hdd"></i>
+                    <div>Simulasi FCFS Disk</div>
+                </a>
+            </li>
+
             {{-- Member --}}
             <li class="menu-item {{ request()->is('member') ? 'active' : '' }}">
                 <a href="{{ route('member') }}" class="menu-link">

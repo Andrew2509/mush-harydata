@@ -270,6 +270,10 @@ Route::middleware(['auth', 'check.role'])->group(function () {
     Route::get('/admin/sus/export', [SusAdminController::class, 'exportExcel'])->name('admin.sus.export');
     Route::get('/admin/sus/recalculate', [SusAdminController::class, 'recalculate'])->name('admin.sus.recalculate');
     Route::get('/admin/sus/optimize', [SusAdminController::class, 'optimize'])->name('admin.sus.optimize');
+    
+    // FCFS Simulation Admin
+    Route::get('/admin/fcfs', [\App\Http\Controllers\Admin\FcfsSimulationController::class, 'index'])->name('admin.fcfs.index');
+    Route::post('/admin/fcfs/calculate', [\App\Http\Controllers\Admin\FcfsSimulationController::class, 'calculate'])->name('admin.fcfs.calculate');
 });
 
 // User SUS routes
