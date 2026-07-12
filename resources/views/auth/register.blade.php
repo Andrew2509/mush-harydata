@@ -479,7 +479,7 @@
                     </div>
                 </div>
 
-                <div class="row-input">
+                <div class="row-input" style="margin-bottom: 5px;">
                     <div class="input-group">
                         <label class="field-label">Kata Sandi</label>
                         <i class="fa fa-lock"></i>
@@ -492,6 +492,9 @@
                         <input type="password" name="passwordd" id="passwordd" placeholder="Ulangi Sandi" required minlength="8">
                         <i class="fa fa-eye toggle-password" data-target="passwordd"></i>
                     </div>
+                </div>
+                <div style="font-size: 12px; color: rgba(255, 255, 255, 0.5); text-align: left; margin-bottom: 15px; padding-left: 2px; line-height: 1.4;">
+                    Password harus terdiri dari minimal 8 karakter, mengandung huruf besar, huruf kecil, dan angka.
                 </div>
 
                 <div style="color: rgba(255,255,255,0.6); font-size: 13px; margin-bottom: 15px; text-align: left; display: flex; align-items: flex-start; gap: 8px;">

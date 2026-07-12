@@ -72,6 +72,9 @@
                 <label for="password" class="col-lg-2 col-form-label">Password</label>
                 <div class="col-lg-10">
                     <input type="password" class="form-control @error('password') is-invalid @enderror" id="password" name="password" value="{{ old('password') }}" placeholder="Masukkan password">
+                    <div class="form-text text-muted" style="font-size: 12px; margin-top: 5px;">
+                        Password harus terdiri dari minimal 8 karakter, mengandung huruf besar, huruf kecil, dan angka.
+                    </div>
                     @error('password')
                     <div class="invalid-feedback">
                         {{ $message }}

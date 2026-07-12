@@ -66,15 +66,15 @@ class DsController extends Controller
         $request->validate([
             'name' => 'required',
             'username' => 'required|min:3|max:255|unique:users,username,'.Auth()->user()->id,
-            'password' => 'nullable|min:12|regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};\':\",.<>\/?]).+$/'
+            'password' => 'nullable|min:8|regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/'
         ], [
             'nama.required' => 'Harap isi kolom nama!',
             'username.required' => 'Harap isi kolom username!',
             'username.min' => 'Panjang username minimal 3 huruf',
             'username.unique' => 'Username telah digunakan',
             'username.max' => 'Panjang username maximal 255 huruf',
-            'password.min' => 'Panjang password/frasa sandi minimal 12 karakter.',
-            'password.regex' => 'Password harus berupa frasa sandi (passphrase) yang memadukan huruf kapital, huruf kecil, angka, dan simbol.',
+            'password.min' => 'Password harus terdiri dari minimal 8 karakter.',
+            'password.regex' => 'Password harus mengandung huruf besar, huruf kecil, dan angka.',
             'no_wa.required' => 'Harap isi no whatsapp!',
             'no_wa.numeric' => 'No whatsapp tidak valid!',
             'no_wa.unique' => 'No whatsapp telah digunakan',

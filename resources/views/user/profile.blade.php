@@ -154,6 +154,9 @@
             <div class="space-y-2">
                 <label class="block text-sm font-semibold text-white">Masukan Password Untuk Merubah</label>
                 <input class="input-field" type="password" name="password" autocomplete="off" placeholder="(Enter if want to changed)"/>
+                <div class="text-xs text-slate-400 mt-1">
+                    Password harus terdiri dari minimal 8 karakter, mengandung huruf besar, huruf kecil, dan angka.
+                </div>
             </div>
 
             <div class="pt-2 md:pt-4">

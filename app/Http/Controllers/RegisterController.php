@@ -33,10 +33,10 @@ class RegisterController extends Controller
             'username' => 'required|string|max:255|unique:users',
             'email' => 'required|email|max:255|unique:users',
             'no_wa' => 'required|string|unique:users,no_wa',
-            'password' => 'required|string|min:12|confirmed|regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};\':\",.<>\/?]).+$/',
+            'password' => 'required|string|min:8|confirmed|regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/',
         ], [
-            'password.min' => 'Panjang password/frasa sandi minimal 12 karakter.',
-            'password.regex' => 'Password harus berupa frasa sandi (passphrase) yang memadukan huruf kapital, huruf kecil, angka, dan simbol.',
+            'password.min' => 'Password harus terdiri dari minimal 8 karakter.',
+            'password.regex' => 'Password harus mengandung huruf besar, huruf kecil, dan angka.',
         ]);
 
         if ($validator->fails()) {

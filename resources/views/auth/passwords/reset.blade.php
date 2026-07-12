@@ -261,11 +261,14 @@
                     <input type="password" name="password" id="password" placeholder="Min. 8 Karakter" required minlength="8">
                     <i class="fa fa-eye toggle-password" data-target="password"></i>
                 </div>
-                <div class="input-group">
+                <div class="input-group" style="margin-bottom: 5px;">
                     <label class="field-label">Konfirmasi Password</label>
                     <i class="fa fa-lock"></i>
                     <input type="password" name="password_confirmation" id="password_confirmation" placeholder="Ulangi Password" required minlength="8">
                     <i class="fa fa-eye toggle-password" data-target="password_confirmation"></i>
+                </div>
+                <div style="font-size: 12px; color: rgba(255, 255, 255, 0.5); text-align: left; margin-bottom: 15px; padding-left: 2px; line-height: 1.4;">
+                    Password harus terdiri dari minimal 8 karakter, mengandung huruf besar, huruf kecil, dan angka.
                 </div>
                 <button type="submit" class="btn-action">Update Password</button>
             </form>
