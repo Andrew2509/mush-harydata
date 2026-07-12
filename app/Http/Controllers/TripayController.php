@@ -408,8 +408,9 @@ class TripayController extends Controller
                     }
                 }
             }
+        }
             
-            $invoice->update(['status' => 'Lunas']);
+        $invoice->update(['status' => 'Lunas']);
             Log::info('Tripay Callback: Invoice lunas', ['order_id' => $order_id]);
             return response()->json(['success' => true]);
 
