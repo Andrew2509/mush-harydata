@@ -70,7 +70,33 @@
                 </div>
             </div>
         </div>
+    </div>
 
+    <!-- Demographic Charts Row -->
+    <div class="row mb-4">
+        <div class="col-md-6 mb-4 mb-md-0">
+            <div class="card h-100">
+                <div class="card-header border-bottom d-flex align-items-center justify-content-between">
+                    <h5 class="card-title m-0">Karakteristik Responden: Jenis Kelamin</h5>
+                </div>
+                <div class="card-body d-flex align-items-center justify-content-center p-4">
+                    <div id="genderChart" style="width: 100%; max-width: 400px;"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header border-bottom d-flex align-items-center justify-content-between">
+                    <h5 class="card-title m-0">Karakteristik Responden: Usia</h5>
+                </div>
+                <div class="card-body d-flex align-items-center justify-content-center p-4">
+                    <div id="ageChart" style="width: 100%; max-width: 400px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
         <!-- Tabulation Table -->
         <div class="col-12">
             <div class="card">
@@ -117,6 +143,98 @@ $(document).ready(function() {
     $('#sus-table').DataTable({
         order: [[13, 'desc']]
     });
+
+    // Gender Chart (ApexCharts Donut)
+    var genderOptions = {
+        series: @json($demographics['gender']['values']),
+        labels: @json($demographics['gender']['labels']),
+        chart: {
+            type: 'donut',
+            height: 290
+        },
+        colors: ['#03c3ec', '#ff3e1d'], // Nice cyan blue and soft red
+        legend: {
+            position: 'bottom',
+            fontSize: '11px',
+            fontWeight: 600
+        },
+        dataLabels: {
+            enabled: true,
+            formatter: function (val) {
+                return val.toFixed(1) + "%"
+            }
+        },
+        plotOptions: {
+            pie: {
+                donut: {
+                    size: '65%',
+                    labels: {
+                        show: true,
+                        total: {
+                            show: true,
+                            label: 'TOTAL',
+                            fontSize: '13px',
+                            fontWeight: 700,
+                            color: '#566a7f',
+                            formatter: function (w) {
+                                return w.globals.seriesTotals.reduce(function(a, b) {
+                                    return a + b
+                                }, 0) + ' Jawaban'
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    };
+    var genderChart = new ApexCharts(document.querySelector("#genderChart"), genderOptions);
+    genderChart.render();
+
+    // Age Chart (ApexCharts Donut)
+    var ageOptions = {
+        series: @json($demographics['age']['values']),
+        labels: @json($demographics['age']['labels']),
+        chart: {
+            type: 'donut',
+            height: 290
+        },
+        colors: ['#696cff', '#ff3e1d', '#ffab00', '#71dd37'], // Indigo, Red, Yellow, Green
+        legend: {
+            position: 'bottom',
+            fontSize: '11px',
+            fontWeight: 600
+        },
+        dataLabels: {
+            enabled: true,
+            formatter: function (val) {
+                return val.toFixed(1) + "%"
+            }
+        },
+        plotOptions: {
+            pie: {
+                donut: {
+                    size: '65%',
+                    labels: {
+                        show: true,
+                        total: {
+                            show: true,
+                            label: 'TOTAL',
+                            fontSize: '13px',
+                            fontWeight: 700,
+                            color: '#566a7f',
+                            formatter: function (w) {
+                                return w.globals.seriesTotals.reduce(function(a, b) {
+                                    return a + b
+                                }, 0) + ' Jawaban'
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    };
+    var ageChart = new ApexCharts(document.querySelector("#ageChart"), ageOptions);
+    ageChart.render();
 });
 </script>
 @endsection

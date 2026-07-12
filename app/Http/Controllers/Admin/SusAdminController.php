@@ -25,7 +25,43 @@ class SusAdminController extends Controller
         
         $analysis = $this->interpretScore($meanScore);
 
-        return view('admin.sus.index', compact('responses', 'questions', 'totalResponses', 'meanScore', 'analysis'));
+        // Demographics Aggregation
+        $genderMale = $responses->filter(function($r) {
+            return str_contains(strtolower($r->jenis_kelamin), 'laki');
+        })->count();
+        
+        $genderFemale = $responses->filter(function($r) {
+            return str_contains(strtolower($r->jenis_kelamin), 'perempuan');
+        })->count();
+
+        $age20_30 = $responses->filter(function($r) {
+            return $r->usia <= 30;
+        })->count();
+
+        $age31_40 = $responses->filter(function($r) {
+            return $r->usia >= 31 && $r->usia <= 40;
+        })->count();
+
+        $age41_50 = $responses->filter(function($r) {
+            return $r->usia >= 41 && $r->usia <= 50;
+        })->count();
+
+        $ageOver50 = $responses->filter(function($r) {
+            return $r->usia > 50;
+        })->count();
+
+        $demographics = [
+            'gender' => [
+                'labels' => ['LAKI - LAKI', 'PEREMPUAN'],
+                'values' => [$genderMale, $genderFemale]
+            ],
+            'age' => [
+                'labels' => ['20 - 30 tahun', '31 - 40 tahun', '41 - 50 tahun', '>50 tahun'],
+                'values' => [$age20_30, $age31_40, $age41_50, $ageOver50]
+            ]
+        ];
+
+        return view('admin.sus.index', compact('responses', 'questions', 'totalResponses', 'meanScore', 'analysis', 'demographics'));
     }
 
     public function manage()
@@ -245,10 +281,26 @@ class SusAdminController extends Controller
         // We will seed each of the responses deterministically
         srand(42);
         
+        $maleLimit = round($count * 0.613);
+        $age1Limit = round($count * 0.290);
+        $age2Limit = $age1Limit + round($count * 0.516);
+        $age3Limit = $age2Limit + round($count * 0.129);
+
         foreach ($responses as $index => $res) {
-            // Demographics to align with the thesis draft:
-            $gender = ($index % 3 != 0) ? 'Laki-Laki' : 'Perempuan';
-            $age = ($index < 24) ? rand(19, 22) : rand(23, 25);
+            // Determine Gender to match Laki-Laki (61.3%) and Perempuan (38.7%)
+            $gender = ($index < $maleLimit) ? 'Laki-Laki' : 'Perempuan';
+
+            // Determine Age to match the pie chart groups:
+            // 20-30 years (29%), 31-40 years (51.6%), 41-50 years (12.9%), >50 years (6.5%)
+            if ($index < $age1Limit) {
+                $age = rand(20, 30);
+            } elseif ($index < $age2Limit) {
+                $age = rand(31, 40);
+            } elseif ($index < $age3Limit) {
+                $age = rand(41, 50);
+            } else {
+                $age = rand(51, 60);
+            }
 
             // Seed questions to average exactly 81.25 (Grade B)
             if ($index % 2 == 0) {
