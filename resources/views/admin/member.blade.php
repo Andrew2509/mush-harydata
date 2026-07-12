@@ -72,8 +72,20 @@
                 <label for="password" class="col-lg-2 col-form-label">Password</label>
                 <div class="col-lg-10">
                     <input type="password" class="form-control @error('password') is-invalid @enderror" id="password" name="password" value="{{ old('password') }}" placeholder="Masukkan password">
-                    <div class="form-text text-muted" style="font-size: 12px; margin-top: 5px;">
-                        Password harus terdiri dari minimal 8 karakter, mengandung huruf besar, huruf kecil, dan angka.
+                    <div id="password-requirements" style="font-size: 12px; margin-top: 8px; display: flex; flex-direction: column; gap: 4px; line-height: 1.4;">
+                        <span class="text-muted font-weight-bold" style="display: block; margin-bottom: 2px;">Password harus memenuhi syarat:</span>
+                        <div id="req-length" style="color: #6c757d; display: flex; align-items: center; gap: 6px; transition: all 0.3s ease;">
+                            <i class="fa fa-times-circle text-danger" id="icon-length"></i> Minimal 8 karakter
+                        </div>
+                        <div id="req-uppercase" style="color: #6c757d; display: flex; align-items: center; gap: 6px; transition: all 0.3s ease;">
+                            <i class="fa fa-times-circle text-danger" id="icon-uppercase"></i> Minimal 1 huruf besar
+                        </div>
+                        <div id="req-lowercase" style="color: #6c757d; display: flex; align-items: center; gap: 6px; transition: all 0.3s ease;">
+                            <i class="fa fa-times-circle text-danger" id="icon-lowercase"></i> Minimal 1 huruf kecil
+                        </div>
+                        <div id="req-number" style="color: #6c757d; display: flex; align-items: center; gap: 6px; transition: all 0.3s ease;">
+                            <i class="fa fa-times-circle text-danger" id="icon-number"></i> Minimal 1 angka
+                        </div>
                     </div>
                     @error('password')
                     <div class="invalid-feedback">
@@ -272,6 +284,30 @@ $(document).ready(function() {
             }
         });
         myModal.show();
+    }
+
+    const adminPasswordInput = document.getElementById('password');
+    if (adminPasswordInput) {
+        adminPasswordInput.addEventListener('input', function() {
+            const val = this.value;
+            const reqs = {
+                length: { el: document.getElementById('req-length'), icon: document.getElementById('icon-length'), test: val.length >= 8 },
+                uppercase: { el: document.getElementById('req-uppercase'), icon: document.getElementById('icon-uppercase'), test: /[A-Z]/.test(val) },
+                lowercase: { el: document.getElementById('req-lowercase'), icon: document.getElementById('icon-lowercase'), test: /[a-z]/.test(val) },
+                number: { el: document.getElementById('req-number'), icon: document.getElementById('icon-number'), test: /\d/.test(val) }
+            };
+
+            for (const key in reqs) {
+                const req = reqs[key];
+                if (req.test) {
+                    req.el.style.color = '#198754';
+                    req.icon.className = 'fa fa-check-circle text-success';
+                } else {
+                    req.el.style.color = '#6c757d';
+                    req.icon.className = 'fa fa-times-circle text-danger';
+                }
+            }
+        });
     }
 </script>
 

@@ -153,9 +153,21 @@
 
             <div class="space-y-2">
                 <label class="block text-sm font-semibold text-white">Masukan Password Untuk Merubah</label>
-                <input class="input-field" type="password" name="password" autocomplete="off" placeholder="(Enter if want to changed)"/>
-                <div class="text-xs text-slate-400 mt-1">
-                    Password harus terdiri dari minimal 8 karakter, mengandung huruf besar, huruf kecil, dan angka.
+                <input class="input-field" type="password" name="password" id="password" autocomplete="off" placeholder="(Enter if want to changed)"/>
+                <div id="password-requirements" class="text-xs space-y-1.5 mt-2 pl-1">
+                    <span class="font-semibold text-slate-300 block mb-1">Password harus memenuhi syarat:</span>
+                    <div id="req-length" class="text-slate-500 flex items-center gap-2 transition-all duration-300">
+                        <span id="icon-length" class="material-symbols-outlined text-xs text-red-500 font-bold">close</span> Minimal 8 karakter
+                    </div>
+                    <div id="req-uppercase" class="text-slate-500 flex items-center gap-2 transition-all duration-300">
+                        <span id="icon-uppercase" class="material-symbols-outlined text-xs text-red-500 font-bold">close</span> Minimal 1 huruf besar
+                    </div>
+                    <div id="req-lowercase" class="text-slate-500 flex items-center gap-2 transition-all duration-300">
+                        <span id="icon-lowercase" class="material-symbols-outlined text-xs text-red-500 font-bold">close</span> Minimal 1 huruf kecil
+                    </div>
+                    <div id="req-number" class="text-slate-500 flex items-center gap-2 transition-all duration-300">
+                        <span id="icon-number" class="material-symbols-outlined text-xs text-red-500 font-bold">close</span> Minimal 1 angka
+                    </div>
                 </div>
             </div>
 
@@ -319,6 +331,36 @@
     function showOtpError(msg) {
         otpErrorMsg.textContent = msg;
         otpError.classList.remove('hidden');
+    }
+
+    const profilePasswordInput = document.getElementById('password');
+    if (profilePasswordInput) {
+        profilePasswordInput.addEventListener('input', function() {
+            const val = this.value;
+            const reqs = {
+                length: { el: document.getElementById('req-length'), icon: document.getElementById('icon-length'), test: val.length >= 8 },
+                uppercase: { el: document.getElementById('req-uppercase'), icon: document.getElementById('icon-uppercase'), test: /[A-Z]/.test(val) },
+                lowercase: { el: document.getElementById('req-lowercase'), icon: document.getElementById('icon-lowercase'), test: /[a-z]/.test(val) },
+                number: { el: document.getElementById('req-number'), icon: document.getElementById('icon-number'), test: /\d/.test(val) }
+            };
+
+            for (const key in reqs) {
+                const req = reqs[key];
+                if (req.test) {
+                    req.el.classList.remove('text-slate-500');
+                    req.el.classList.add('text-cyan-400');
+                    req.icon.textContent = 'check';
+                    req.icon.classList.remove('text-red-500');
+                    req.icon.classList.add('text-cyan-400');
+                } else {
+                    req.el.classList.remove('text-cyan-400');
+                    req.el.classList.add('text-slate-500');
+                    req.icon.textContent = 'close';
+                    req.icon.classList.remove('text-cyan-400');
+                    req.icon.classList.add('text-red-500');
+                }
+            }
+        });
     }
 </script>
 @endpush

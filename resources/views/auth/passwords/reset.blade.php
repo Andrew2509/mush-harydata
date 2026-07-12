@@ -267,8 +267,20 @@
                     <input type="password" name="password_confirmation" id="password_confirmation" placeholder="Ulangi Password" required minlength="8">
                     <i class="fa fa-eye toggle-password" data-target="password_confirmation"></i>
                 </div>
-                <div style="font-size: 12px; color: rgba(255, 255, 255, 0.5); text-align: left; margin-bottom: 15px; padding-left: 2px; line-height: 1.4;">
-                    Password harus terdiri dari minimal 8 karakter, mengandung huruf besar, huruf kecil, dan angka.
+                <div id="password-requirements" style="font-size: 12px; text-align: left; margin-bottom: 15px; padding-left: 2px; line-height: 1.6; display: flex; flex-direction: column; gap: 4px;">
+                    <span style="font-weight: bold; color: rgba(255, 255, 255, 0.7); display: block; margin-bottom: 2px;">Password harus memenuhi syarat:</span>
+                    <div id="req-length" style="color: rgba(255, 255, 255, 0.4); display: flex; align-items: center; gap: 8px; transition: all 0.3s ease;">
+                        <i class="fa fa-times-circle" id="icon-length" style="color: #ff3366; font-size: 12px;"></i> Minimal 8 karakter
+                    </div>
+                    <div id="req-uppercase" style="color: rgba(255, 255, 255, 0.4); display: flex; align-items: center; gap: 8px; transition: all 0.3s ease;">
+                        <i class="fa fa-times-circle" id="icon-uppercase" style="color: #ff3366; font-size: 12px;"></i> Minimal 1 huruf besar
+                    </div>
+                    <div id="req-lowercase" style="color: rgba(255, 255, 255, 0.4); display: flex; align-items: center; gap: 8px; transition: all 0.3s ease;">
+                        <i class="fa fa-times-circle" id="icon-lowercase" style="color: #ff3366; font-size: 12px;"></i> Minimal 1 huruf kecil
+                    </div>
+                    <div id="req-number" style="color: rgba(255, 255, 255, 0.4); display: flex; align-items: center; gap: 8px; transition: all 0.3s ease;">
+                        <i class="fa fa-times-circle" id="icon-number" style="color: #ff3366; font-size: 12px;"></i> Minimal 1 angka
+                    </div>
                 </div>
                 <button type="submit" class="btn-action">Update Password</button>
             </form>
@@ -291,6 +303,29 @@
                 this.classList.add('fa-eye');
             }
         });
+    });
+
+    document.getElementById('password').addEventListener('input', function() {
+        const val = this.value;
+        const reqs = {
+            length: { el: document.getElementById('req-length'), icon: document.getElementById('icon-length'), test: val.length >= 8 },
+            uppercase: { el: document.getElementById('req-uppercase'), icon: document.getElementById('icon-uppercase'), test: /[A-Z]/.test(val) },
+            lowercase: { el: document.getElementById('req-lowercase'), icon: document.getElementById('icon-lowercase'), test: /[a-z]/.test(val) },
+            number: { el: document.getElementById('req-number'), icon: document.getElementById('icon-number'), test: /\d/.test(val) }
+        };
+
+        for (const key in reqs) {
+            const req = reqs[key];
+            if (req.test) {
+                req.el.style.color = 'rgba(255, 255, 255, 0.95)';
+                req.icon.className = 'fa fa-check-circle';
+                req.icon.style.color = '#00ff88';
+            } else {
+                req.el.style.color = 'rgba(255, 255, 255, 0.4)';
+                req.icon.className = 'fa fa-times-circle';
+                req.icon.style.color = '#ff3366';
+            }
+        }
     });
 </script>
 @endsection
