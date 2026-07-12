@@ -59,12 +59,18 @@ class FcfsSimulationController extends Controller
 
         $avgSeekTime = count($sequence) > 0 ? $totalHeadMovement / count($sequence) : 0;
 
+        $categories = ['Mulai'];
+        for ($i = 1; $i <= count($steps); $i++) {
+            $categories[] = 'Step ' . $i;
+        }
+
         $result = [
             'steps' => $steps,
             'total_head_movement' => $totalHeadMovement,
             'avg_seek_time' => round($avgSeekTime, 2),
             'seek_sequence' => $seekSequence,
-            'raw_sequence' => $sequence
+            'raw_sequence' => $sequence,
+            'categories' => $categories
         ];
 
         return view('admin.sus.fcfs_simulation', [

@@ -211,7 +211,7 @@ document.addEventListener("DOMContentLoaded", function() {
             borderColor: 'rgba(255, 255, 255, 0.08)'
         },
         xaxis: {
-            categories: @json(array_merge(['Mulai'], array_map(function($i) { return 'Step ' . $i; }, range(1, count($result['steps']))))),
+            categories: @json($result['categories']),
             labels: {
                 style: {
                     colors: '#a0aec0'
