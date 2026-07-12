@@ -16,7 +16,7 @@ use App\Http\Controllers\KategoriController;
 use App\Http\Controllers\LayananController;
 use App\Http\Controllers\TokoPayCallbackController;
 use App\Http\Controllers\PaydisiniCallbackController;
-use App\Http\Controllers\digiFlazzController;
+use App\Http\Controllers\DigiFlazzController;
 use App\Http\Controllers\DigiflazzCallbackController;
 use App\Http\Controllers\RiwayatPembelian;
 use App\Http\Controllers\Admin\UserDepositController;

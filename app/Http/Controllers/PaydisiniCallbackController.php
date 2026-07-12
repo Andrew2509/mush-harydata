@@ -13,7 +13,7 @@ use App\Models\Kategori;
 use App\Models\Deposit;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
-use App\Http\Controllers\digiFlazzController;
+use App\Http\Controllers\DigiFlazzController;
 use App\Http\Controllers\provider\bangjeff\BangJeffController;
 
 class PaydisiniCallbackController extends Controller

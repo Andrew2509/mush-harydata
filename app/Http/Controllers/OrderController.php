@@ -18,7 +18,7 @@ use App\Models\Method;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use App\Http\Controllers\digiFlazzController;
+use App\Http\Controllers\DigiFlazzController;
 use App\Http\Controllers\provider\aoshi\AoshiController;
 use App\Http\Controllers\ApiCheckController;
 use App\Http\Controllers\MethodController;
@@ -394,7 +394,7 @@ class OrderController extends Controller
 
             try {
                 if ($provider == 'digiflazz') {
-                    $digi = new digiFlazzController;
+                    $digi = new DigiFlazzController;
                     $resSaldo = $digi->cekSaldo();
                     $currentSaldo = $resSaldo['data']['deposit'] ?? null;
                 } elseif (in_array($provider, ['topupedia', 'bangjeff', 'aoshi'])) {
@@ -937,7 +937,7 @@ class OrderController extends Controller
 
         try {
             if ($provider == 'digiflazz') {
-                $digi = new digiFlazzController;
+                $digi = new DigiFlazzController;
                 $resSaldo = $digi->cekSaldo();
                 $currentSaldo = $resSaldo['data']['deposit'] ?? null;
             } elseif (in_array($provider, ['topupedia', 'bangjeff', 'aoshi'])) {
@@ -1237,7 +1237,7 @@ class OrderController extends Controller
             if ($dataLayanan->harga > $user->balance) return response()->json(['status' => false, 'data' => 'Saldo anda tidak cukup']);
 
                  if($dataLayanan->provider == "digiflazz"){
-                    $digi = new digiFlazzController;
+                    $digi = new DigiFlazzController;
                     $random_part = mt_rand(100000, 999999);
                     $provider_order_id = 'REF-HRY' . $random_part;
                     $order = $digi->order($request->uid, $request->zone, $dataLayanan->provider_id, $provider_order_id);

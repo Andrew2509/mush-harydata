@@ -14,7 +14,7 @@ use App\Models\Kategori;
 use App\Models\Voucher;
 use App\Models\Deposit;
 use App\Models\User;
-use App\Http\Controllers\digiFlazzController;
+use App\Http\Controllers\DigiFlazzController;
 use App\Http\Controllers\provider\topupedia\TopupediaController;
 use App\Http\Controllers\provider\bangjeff\BangJeffController;
 use App\Http\Controllers\provider\aoshi\AoshiController;
