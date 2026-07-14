@@ -17,13 +17,20 @@ class ProdukController extends Controller
 {
     public function get($provider = null)
     {
+        $error = null;
         try {
             $pricelist = Cache::remember('digiflazz_pricelist_cache', 600, function () {
                 $data = $this->getFullDigiflazzPricelist();
                 return !empty($data) ? $data : null;
             });
+            if (!$pricelist) {
+                $error = 'Gagal mengambil data dari API Digiflazz (Pricelist Kosong/Limit)';
+                Cache::forget('digiflazz_pricelist_cache');
+            }
         } catch (\Exception $e) {
             $pricelist = null;
+            $error = $e->getMessage();
+            Cache::forget('digiflazz_pricelist_cache');
         }
 
         $groupedBrands = [
@@ -84,7 +91,7 @@ class ProdukController extends Controller
             'kategoris' => $localKategoris,
             'groupedBrands' => $groupedBrands,
             'pricelist' => $pricelist,
-            'error' => $pricelist ? null : 'Gagal mengambil data dari API Digiflazz (Limit/Error)'
+            'error' => $error
         ]);
     }
 
