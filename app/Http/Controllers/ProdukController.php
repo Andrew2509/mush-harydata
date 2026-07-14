@@ -181,7 +181,7 @@ class ProdukController extends Controller
            $data = $digi->harga();
            $profit = \DB::table('setting_webs')->where('id',1)->first();
 
-            if ($data && isset($data['data'])) {
+            if ($data && isset($data['data']) && is_array($data['data']) && isset($data['data'][0])) {
                 foreach ($data['data'] as $product) {
                     $kategoriArray = explode(',', $request->kategori);
                     if ($product['buyer_product_status'] == true && in_array($product['brand'], $kategoriArray)) {
@@ -210,7 +210,8 @@ class ProdukController extends Controller
                 }
                 return back()->with('success', 'Berhasil menginput layanan');
             } else {
-                return back()->with('error', 'Data layanan tidak valid dari API.');
+                $errorMsg = $data['data']['message'] ?? $data['message'] ?? 'Data layanan tidak valid dari API.';
+                return back()->with('error', $errorMsg);
             }
 
         }
@@ -222,7 +223,7 @@ class ProdukController extends Controller
     $digi = new DigiFlazzController;
     $data = $digi->harga();
         
-    if ($data && isset($data['data'])) {
+    if ($data && isset($data['data']) && is_array($data['data']) && isset($data['data'][0])) {
         foreach ($data['data'] as $product) {
             if ($product['buyer_product_status'] == true) {
                 $dataGames = Kategori::where('nama', $product['brand'])->first();
@@ -245,7 +246,8 @@ class ProdukController extends Controller
         }
         return back()->with('success', 'Berhasil Update Harga produk Digiflazz!');
     } else {
-        return back()->with('error', 'Data Layanan Tidak Valid Dari API!');
+        $errorMsg = $data['data']['message'] ?? $data['message'] ?? 'Data Layanan Tidak Valid Dari API!';
+        return back()->with('error', $errorMsg);
     }
 }
 
