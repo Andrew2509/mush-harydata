@@ -28,6 +28,12 @@
         <h4 class="page-title" style="display:flex;align-items:center;gap:8px;margin:0;">
             <i class="fas fa-tags" style="color:#00f0ff;font-size:0.9rem;"></i> Manajemen Kategori
         </h4>
+        <form action="{{ route('kategori.sync.digiflazz') }}" method="POST" style="margin: 0;">
+            @csrf
+            <button type="submit" class="btn btn-info" style="display:inline-flex;align-items:center;gap:6px;">
+                <i class="fas fa-sync-alt"></i> Ambil Kategori dari Digiflazz
+            </button>
+        </form>
     </div>
 
 {{-- Tambah Kategori --}}

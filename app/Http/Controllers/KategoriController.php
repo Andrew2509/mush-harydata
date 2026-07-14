@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Models\Kategori;
+use Illuminate\Support\Str;
+use App\Http\Controllers\DigiFlazzController;
 
 class KategoriController extends Controller
 {
@@ -331,5 +333,94 @@ public function detail($id)
             ]);
            
         return back()->with('success', 'Berhasil update kategori');        
-    }        
+    }
+
+    public function syncDigiflazz()
+    {
+        try {
+            $digi = new DigiFlazzController();
+            $data = $digi->harga();
+
+            if (!$data || !isset($data['data']) || !is_array($data['data']) || !isset($data['data'][0])) {
+                $errorMsg = $data['data']['message'] ?? $data['message'] ?? 'Gagal mengambil data dari API Digiflazz.';
+                return back()->with('error', 'API Digiflazz Error: ' . $errorMsg);
+            }
+
+            $addedCount = 0;
+            $skippedCount = 0;
+
+            // Kumpulkan brand-brand unik dan kategorinya dari pricelist
+            $uniqueBrands = [];
+            foreach ($data['data'] as $product) {
+                if (empty($product['brand'])) {
+                    continue;
+                }
+                
+                $brandName = trim($product['brand']);
+                $categoryName = trim($product['category'] ?? '');
+
+                if (!isset($uniqueBrands[$brandName])) {
+                    $uniqueBrands[$brandName] = $categoryName;
+                }
+            }
+
+            foreach ($uniqueBrands as $brand => $category) {
+                $slug = Str::slug($brand);
+
+                // Cek apakah kategori sudah ada berdasarkan nama atau kode (slug)
+                $exists = Kategori::where('nama', $brand)
+                    ->orWhere('kode', $slug)
+                    ->exists();
+
+                if ($exists) {
+                    $skippedCount++;
+                    continue;
+                }
+
+                // Tebak tipe kategori
+                $tipe = 'game'; // default
+                $categoryLower = strtolower($category);
+                
+                if (str_contains($categoryLower, 'e-money') || str_contains($categoryLower, 'emoney') || str_contains($categoryLower, 'saldo')) {
+                    $tipe = 'e-money';
+                } elseif (str_contains($categoryLower, 'voucher')) {
+                    $tipe = 'voucher';
+                } elseif (str_contains($categoryLower, 'pulsa') || str_contains($categoryLower, 'data') || str_contains($categoryLower, 'paket') || str_contains($categoryLower, 'pln') || str_contains($categoryLower, 'token')) {
+                    $tipe = 'pulsa';
+                } elseif (str_contains($categoryLower, 'app') || str_contains($categoryLower, 'premium') || str_contains($categoryLower, 'streaming')) {
+                    $tipe = 'app';
+                }
+
+                // Tambahkan kategori baru
+                $kategori = new Kategori();
+                $kategori->nama = $brand;
+                $kategori->sub_nama = $brand;
+                $kategori->kode = $slug;
+                $kategori->server_id = 0;
+                $kategori->tipe = $tipe;
+                $kategori->thumbnail = '/assets/thumbnail/default.png'; // default placeholder
+                $kategori->banner = '/assets/banner_game/default.png'; // default placeholder
+                $kategori->status = 'active';
+                $kategori->deskripsi_game = 'Topup ' . $brand . ' instan 24 jam aman dan terpercaya.';
+                $kategori->deskripsi_field = 'Masukkan User ID Anda.';
+                $kategori->save();
+
+                // Tambahkan custom input default (User ID)
+                DB::table('custom_inputs')->insert([
+                    'kategori_id' => $kategori->id,
+                    'field_1' => 'User ID,id,number', // title, placeholder/name, type
+                    'field_2' => null,
+                    'field_select_title' => null,
+                    'field_select' => null,
+                ]);
+
+                $addedCount++;
+            }
+
+            return back()->with('success', "Berhasil mensinkronisasi kategori! Menambahkan {$addedCount} kategori baru, dan melewati {$skippedCount} kategori yang sudah terdaftar.");
+
+        } catch (\Exception $e) {
+            return back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
+    }
 }

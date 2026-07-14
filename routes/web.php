@@ -204,6 +204,7 @@ Route::middleware(['auth', 'check.role'])->group(function () {
     Route::get('/kategori/hapus/{id}',                                           [KategoriController::class, 'delete'])->name('kategori.delete');
     Route::get('/kategori-status/{id}/{status}',                                 [KategoriController::class, 'update'])->name('kategori.update');
     Route::post('/kategori/update',                                              [KategoriController::class, 'patch'])->name('kategori.update.patch');
+    Route::post('/kategori/sync-digiflazz',                                      [KategoriController::class, 'syncDigiflazz'])->name('kategori.sync.digiflazz');
     Route::get('/kategori/{id}/detail',                                          [KategoriController::class, 'detail'])->name('kategori.detail');
     Route::post('/kategori/{id}/detail',                                         [KategoriController::class, 'patch'])->name('kategori.detail.update');
     Route::get('/produk/get/{provider?}',                                        [ProdukController::class, 'get'])->name('produk.get');
