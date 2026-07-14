@@ -21,12 +21,11 @@ class ProdukController extends Controller
         try {
             $pricelist = Cache::remember('digiflazz_pricelist_cache', 600, function () {
                 $data = $this->getFullDigiflazzPricelist();
-                return !empty($data) ? $data : null;
+                if (empty($data)) {
+                    throw new \Exception('Pricelist kosong dari Digiflazz API.');
+                }
+                return $data;
             });
-            if (!$pricelist) {
-                $error = 'Gagal mengambil data dari API Digiflazz (Pricelist Kosong/Limit)';
-                Cache::forget('digiflazz_pricelist_cache');
-            }
         } catch (\Exception $e) {
             $pricelist = null;
             $error = $e->getMessage();
@@ -34,6 +33,7 @@ class ProdukController extends Controller
         }
 
         $groupedBrands = [
+            'Semua Brand' => [],
             'Pulsa' => [],
             'Data' => [],
             'Games' => [],
@@ -53,6 +53,11 @@ class ProdukController extends Controller
 
                 $brand = $product['brand'];
                 $category = strtolower($product['category'] ?? '');
+
+                // Tambahkan ke tab "Semua Brand" tanpa filter
+                if (!in_array($brand, $groupedBrands['Semua Brand'])) {
+                    $groupedBrands['Semua Brand'][] = $brand;
+                }
 
                 // Guess the group
                 $group = 'Lainnya';
@@ -82,6 +87,8 @@ class ProdukController extends Controller
                     $groupedBrands[$group][] = $brand;
                 }
             }
+            // Sort Semua Brand alphabetically
+            sort($groupedBrands['Semua Brand']);
         }
 
         $localKategoris = Kategori::all();
@@ -497,12 +504,11 @@ public function syncAllDigiflazz(Request $request)
     ]);
 
     try {
-        $pricelist = Cache::remember('digiflazz_pricelist_cache', 600, function () {
-            $data = $this->getFullDigiflazzPricelist();
-            return !empty($data) ? $data : null;
-        });
+        // Hapus cache lama agar selalu dapat data fresh dari Digiflazz
+        Cache::forget('digiflazz_pricelist_cache');
+        $pricelist = $this->getFullDigiflazzPricelist();
 
-        if (!$pricelist) {
+        if (empty($pricelist)) {
             return back()->with('error', 'Gagal mengambil data dari API Digiflazz (Limit/Error). Silakan coba beberapa saat lagi.');
         }
 

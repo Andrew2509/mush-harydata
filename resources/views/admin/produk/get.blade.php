@@ -170,8 +170,11 @@
                     <ul class="nav nav-tabs top-tab-nav" id="categoryTabs" role="tablist">
                         @foreach(array_keys($groupedBrands) as $index => $groupName)
                             <li class="nav-item" role="presentation">
-                                <button class="nav-link @if($index === 2) active @endif" id="tab-{{ Str::slug($groupName) }}" data-bs-toggle="tab" data-bs-target="#pane-{{ Str::slug($groupName) }}" type="button" role="tab" aria-controls="pane-{{ Str::slug($groupName) }}" aria-selected="{{ $index === 2 ? 'true' : 'false' }}">
+                                <button class="nav-link @if($index === 0) active @endif" id="tab-{{ Str::slug($groupName) }}" data-bs-toggle="tab" data-bs-target="#pane-{{ Str::slug($groupName) }}" type="button" role="tab" aria-controls="pane-{{ Str::slug($groupName) }}" aria-selected="{{ $index === 0 ? 'true' : 'false' }}">
                                     {{ $groupName }}
+                                    @if($index === 0)
+                                        <span class="badge bg-primary ms-1" style="font-size:0.65rem;">{{ count($groupedBrands[$groupName]) }}</span>
+                                    @endif
                                 </button>
                             </li>
                         @endforeach
@@ -180,7 +183,7 @@
                     {{-- Tab Content (Brand Badges) --}}
                     <div class="tab-content" id="categoryTabContent">
                         @foreach($groupedBrands as $groupName => $brands)
-                            <div class="tab-pane fade @if($loop->index === 2) show active @endif" id="pane-{{ Str::slug($groupName) }}" role="tabpanel" aria-labelledby="tab-{{ Str::slug($groupName) }}">
+                            <div class="tab-pane fade @if($loop->index === 0) show active @endif" id="pane-{{ Str::slug($groupName) }}" role="tabpanel" aria-labelledby="tab-{{ Str::slug($groupName) }}">
                                 @if(empty($brands))
                                     <div class="text-center py-4 text-muted">Tidak ada kategori untuk grup ini.</div>
                                 @else
