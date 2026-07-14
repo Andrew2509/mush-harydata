@@ -246,12 +246,12 @@ class ProdukController extends Controller
                 return back()->with('error', 'Data layanan tidak valid dari API.');
             }
         }  else if ($request->provider == 'digiflazz') {
-           $digi = new DigiFlazzController;
-           $data = $digi->harga();
            $profit = \DB::table('setting_webs')->where('id',1)->first();
+           $data = $this->getFullDigiflazzPricelist();
 
-            if ($data && isset($data['data']) && is_array($data['data']) && isset($data['data'][0])) {
-                foreach ($data['data'] as $product) {
+            if (!empty($data)) {
+                $addedCount = 0;
+                foreach ($data as $product) {
                     $kategoriArray = explode(',', $request->kategori);
                     if ($product['buyer_product_status'] == true && in_array($product['brand'], $kategoriArray)) {
                         $dataGames = Kategori::where('nama', $product['brand'])->first();
@@ -309,14 +309,14 @@ class ProdukController extends Controller
                             $layanan->catatan = '';
                             $layanan->status = 'available';
                             $layanan->save();
+                            $addedCount++;
                         }
                     }
 
                 }
-                return back()->with('success', 'Berhasil menginput layanan');
+                return back()->with('success', "Berhasil menginput {$addedCount} layanan dari Digiflazz (Prepaid + Pasca).");
             } else {
-                $errorMsg = $data['data']['message'] ?? $data['message'] ?? 'Data layanan tidak valid dari API.';
-                return back()->with('error', $errorMsg);
+                return back()->with('error', 'Gagal mengambil data dari API Digiflazz. Silakan coba beberapa saat lagi.');
             }
 
         }
