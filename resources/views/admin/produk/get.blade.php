@@ -156,9 +156,14 @@
         <div class="col-lg-9 col-md-8">
             <div class="card" style="border:1px solid rgba(255,255,255,0.08);border-radius:12px;">
                 <div class="card-body p-4">
-                    {{-- Search Kategori --}}
-                    <div class="mb-4" style="max-width: 320px;">
-                        <input type="text" id="searchKategori" class="form-control search-kategori-input" placeholder="Cari kategori...">
+                    {{-- Search & Bulk Sync --}}
+                    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+                        <div style="max-width: 320px; width: 100%;">
+                            <input type="text" id="searchKategori" class="form-control search-kategori-input" placeholder="Cari kategori...">
+                        </div>
+                        <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#syncAllModal" style="display:inline-flex;align-items:center;gap:6px;">
+                            <i class="fas fa-sync-alt"></i> Ambil Semua Produk dari Digiflazz
+                        </button>
                     </div>
 
                     {{-- Horizontal Tabs --}}
@@ -334,4 +339,53 @@
         });
     });
 </script>
+
+{{-- Modal Sync All --}}
+<div class="modal fade" id="syncAllModal" tabindex="-1" aria-labelledby="syncAllModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background-color: #1a2238; border: 1px solid rgba(0, 240, 255, 0.15); border-radius: 12px;">
+            <div class="modal-header" style="border-bottom: 1px solid rgba(255, 255, 255, 0.08);">
+                <h5 class="modal-title text-white" id="syncAllModalLabel">
+                    <i class="fas fa-sync-alt text-info me-2"></i> Sinkronisasi Masal Produk Digiflazz
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ route('produk.sync.all.digiflazz') }}" method="POST">
+                @csrf
+                <div class="modal-body text-white">
+                    <p style="font-size:0.9rem;color:#a5a9c0;">
+                        Fitur ini akan menyinkronkan seluruh produk prabayar aktif dari API Digiflazz ke database website Anda.
+                    </p>
+                    <div class="alert alert-info py-2" style="font-size:0.8rem;background:rgba(0,240,255,0.08);border-color:rgba(0,240,255,0.15);color:#00f0ff;border-radius:8px;">
+                        <i class="fas fa-info-circle me-1"></i> 
+                        Kategori baru akan dibuat otomatis jika belum terdaftar. Produk lama akan diperbarui menggunakan persentase profit lamanya, sedangkan produk baru akan diimpor dengan profit default di bawah ini.
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <label class="form-label">Profit Publik (%)</label>
+                            <input type="number" step="0.01" class="form-control" name="profit" required value="5.00">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Profit Member (%)</label>
+                            <input type="number" step="0.01" class="form-control" name="profit_member" required value="4.00">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Profit Platinum (%)</label>
+                            <input type="number" step="0.01" class="form-control" name="profit_platinum" required value="3.00">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Profit Gold (%)</label>
+                            <input type="number" step="0.01" class="form-control" name="profit_gold" required value="2.00">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-top: 1px solid rgba(255, 255, 255, 0.08);">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary">Mulai Sinkronisasi Semua</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 @endsection

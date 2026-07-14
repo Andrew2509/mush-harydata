@@ -210,6 +210,7 @@ Route::middleware(['auth', 'check.role'])->group(function () {
     Route::get('/produk/get/{provider?}',                                        [ProdukController::class, 'get'])->name('produk.get');
     Route::post('/produk/get/{provider?}',                                       [ProdukController::class, 'store'])->name('produk.get.post');
     Route::post('/produk/sync/',                                                 [ProdukController::class, 'sync'])->name('sync.produk.get.post');
+    Route::post('/produk/sync-all-digiflazz/',                                   [ProdukController::class, 'syncAllDigiflazz'])->name('produk.sync.all.digiflazz');
     Route::post('/produk/synctopupedia/',                                        [ProdukController::class, 'synctopupedia'])->name('synctopupedia.produk.get.post');
     Route::get('/produk/get/{id}/detail',                                        [ProdukController::class, 'detail'])->name('detail.produk.get');
     Route::post('/produk/get/{id}/detail',                                       [ProdukController::class, 'patch'])->name('detail.produk.get.update');

@@ -353,6 +353,121 @@ class ProdukController extends Controller
     }
 }
 
+public function syncAllDigiflazz(Request $request)
+{
+    $request->validate([
+        'profit' => 'required|numeric',
+        'profit_member' => 'required|numeric',
+        'profit_platinum' => 'required|numeric',
+        'profit_gold' => 'required|numeric',
+    ]);
+
+    try {
+        $pricelist = Cache::remember('digiflazz_pricelist_cache', 600, function () {
+            $digi = new DigiFlazzController();
+            $data = $digi->harga();
+            if ($data && isset($data['data']) && is_array($data['data']) && isset($data['data'][0])) {
+                return $data['data'];
+            }
+            return null;
+        });
+
+        if (!$pricelist) {
+            return back()->with('error', 'Gagal mengambil data dari API Digiflazz (Limit/Error). Silakan coba beberapa saat lagi.');
+        }
+
+        $addedCount = 0;
+        $updatedCount = 0;
+
+        foreach ($pricelist as $product) {
+            if (empty($product['brand']) || $product['buyer_product_status'] != true) {
+                continue;
+            }
+
+            // 1. Dapatkan atau buat Kategori
+            $dataGames = Kategori::where('nama', $product['brand'])->first();
+            if (!$dataGames) {
+                $tipe = 'game';
+                $categoryLower = strtolower($product['category'] ?? '');
+                if (str_contains($categoryLower, 'e-money') || str_contains($categoryLower, 'emoney') || str_contains($categoryLower, 'saldo')) {
+                    $tipe = 'e-money';
+                } elseif (str_contains($categoryLower, 'voucher')) {
+                    $tipe = 'voucher';
+                } elseif (str_contains($categoryLower, 'pulsa') || str_contains($categoryLower, 'data') || str_contains($categoryLower, 'paket') || str_contains($categoryLower, 'pln') || str_contains($categoryLower, 'token')) {
+                    $tipe = 'pulsa';
+                } elseif (str_contains($categoryLower, 'app') || str_contains($categoryLower, 'premium') || str_contains($categoryLower, 'streaming')) {
+                    $tipe = 'app';
+                }
+
+                $dataGames = new Kategori();
+                $dataGames->nama = $product['brand'];
+                $dataGames->sub_nama = $product['brand'];
+                $dataGames->kode = Str::slug($product['brand']);
+                $dataGames->server_id = 0;
+                $dataGames->tipe = $tipe;
+                $dataGames->thumbnail = '/assets/thumbnail/default.png';
+                $dataGames->banner = '/assets/banner_game/default.png';
+                $dataGames->status = 'active';
+                $dataGames->deskripsi_game = 'Topup ' . $product['brand'] . ' instan 24 jam aman.';
+                $dataGames->deskripsi_field = 'Masukkan User ID Anda.';
+                $dataGames->save();
+
+                DB::table('custom_inputs')->insert([
+                    'kategori_id' => $dataGames->id,
+                    'field_1' => 'User ID,id,number',
+                    'field_2' => null,
+                    'field_select_title' => null,
+                    'field_select' => null,
+                ]);
+            }
+
+            // 2. Dapatkan atau buat Layanan
+            $dataProduct = Layanan::where('provider_id', $product['buyer_sku_code'])->first();
+            if ($dataProduct) {
+                // Update Layanan menggunakan profit lamanya yang sudah berjalan
+                $profit = $dataProduct->profit;
+                $profit_member = $dataProduct->profit_member;
+                $profit_platinum = $dataProduct->profit_platinum;
+                $profit_gold = $dataProduct->profit_gold;
+
+                $harga = $product['price'];
+                $dataProduct->harga = $harga + ($harga * $profit / 100);
+                $dataProduct->harga_member = $harga + ($harga * $profit_member / 100);
+                $dataProduct->harga_platinum = $harga + ($harga * $profit_platinum / 100);
+                $dataProduct->harga_gold = $harga + ($harga * $profit_gold / 100);
+                $dataProduct->save();
+                
+                $updatedCount++;
+            } else {
+                // Tambahkan Layanan Baru menggunakan profit default dari form input
+                $layanan = new Layanan();
+                $layanan->kategori_id = $dataGames->id;
+                $layanan->layanan = $product['product_name'];
+                $layanan->provider_id = $product['buyer_sku_code'];
+                $layanan->harga = $product['price'] + ($product['price'] * $request->profit / 100);
+                $layanan->harga_member = $product['price'] + ($product['price'] * $request->profit_member / 100);
+                $layanan->harga_platinum = $product['price'] + ($product['price'] * $request->profit_platinum / 100);
+                $layanan->harga_gold = $product['price'] + ($product['price'] * $request->profit_gold / 100);
+                $layanan->profit = $request->profit;
+                $layanan->profit_member = $request->profit_member;
+                $layanan->profit_platinum = $request->profit_platinum;
+                $layanan->profit_gold = $request->profit_gold;
+                $layanan->provider = 'digiflazz';
+                $layanan->catatan = '';
+                $layanan->status = 'available';
+                $layanan->save();
+
+                $addedCount++;
+            }
+        }
+
+        return back()->with('success', "Berhasil sinkronisasi masal seluruh produk Digiflazz! Menambahkan {$addedCount} layanan baru, dan memperbarui {$updatedCount} layanan lama.");
+
+    } catch (\Exception $e) {
+        return back()->with('error', 'Terjadi kesalahan saat sinkronisasi masal: ' . $e->getMessage());
+    }
+}
+
 
 public function synctopupedia(Request $request) {
     $aoshi = new TopupediaController;
