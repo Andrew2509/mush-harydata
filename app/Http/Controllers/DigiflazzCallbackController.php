@@ -27,13 +27,22 @@ class DigiflazzCallbackController extends Controller
         ]);
 
         $api_settings = DB::table('setting_webs')->where('id', 1)->first();
-        $secret = $api_settings->api_key_digi ?? '';
+        $secret = env('DIGIFLAZZ_WEBHOOK_SECRET') ?? ($api_settings->api_key_digi ?? '');
         $post_data = file_get_contents('php://input');
         $signature = hash_hmac('sha1', $post_data, $secret);
 
-        // TESTING MODE: Pengecekan signature dimatikan sementara untuk testing Postman
-        // if ($request->header('X-Hub-Signature') == 'sha1=' . $signature) {
-        if (true || $request->header('X-Hub-Signature') == 'sha1=' . $signature) {
+        $header_signature = $request->header('X-Hub-Signature') ?? '';
+        $expected_signature = 'sha1=' . $signature;
+
+        $isValid = hash_equals($expected_signature, $header_signature);
+
+        // Bypass signature check hanya di environment lokal untuk keperluan testing/Postman jika header tidak disertakan
+        if (env('APP_ENV') === 'local' && !$header_signature) {
+            Log::info('Digiflazz Callback: Bypassing signature check in local environment.');
+            $isValid = true;
+        }
+
+        if ($isValid) {
             $data = json_decode($request->getContent(), true);
             $refId = $data['data']['ref_id'] ?? null;
             $updateStatus = $data['data']['status'] ?? null;
@@ -47,44 +56,56 @@ class DigiflazzCallbackController extends Controller
                 ]);
 
                 if ($request->header('X-Digiflazz-Event') == 'update') {
-                    $invoice = Pembelian::where('provider_order_id', $refId)->where('status', 'Proses')->first();
+                    // Menggunakan whereNotIn untuk mencegah order menggantung jika status berubah sebelum Sukses/Gagal
+                    $invoice = Pembelian::where('provider_order_id', $refId)
+                        ->whereNotIn('status', ['Sukses', 'Gagal'])
+                        ->first();
 
                     if ($invoice) {
-                        $updateData = [
-                            'status' => $updateStatus,
-                            'log' => json_encode($data),
-                            'waktu_fulfillment' => now()
-                        ];
+                        // Hanya update status jika final (Sukses atau Gagal). Jangan ubah status lokal jika callback masih Pending
+                        if (in_array($updateStatus, ['Sukses', 'Gagal'])) {
+                            $updateData = [
+                                'status' => $updateStatus,
+                                'log' => json_encode($data),
+                                'waktu_fulfillment' => now()
+                            ];
 
-                        if ($invoice->tipe_transaksi == 'voucher') {
-                            $updateData['voucher'] = $ser_n;
-                        }
-
-                        $invoice->update($updateData);
-
-                        $updatePesanan = Pembayaran::where('order_id', $invoice->order_id)->first();
-
-                        if ($updateStatus == 'Sukses') {
-                            if ($updatePesanan) {
-                                $pesanSukses = "*Pembelian Sukses*\n\n" .
-                                    "No Invoice: *$invoice->order_id*\n" .
-                                    "Layanan: *$invoice->layanan*\n" .
-                                    "ID : *$invoice->user_id*\n" .
-                                    "Server : *$invoice->zone*\n" .
-                                    "Nickname : *$invoice->nickname*\n" .
-                                    "Harga: *Rp. " . number_format($invoice->harga, 0, '.', ',') . "*\n" .
-                                    "Status Pembelian: *Sukses*\n" .
-                                    "Metode Pembayaran: *$updatePesanan->metode*\n\n" .
-                                    "*Invoice* : " . env("APP_URL") . "/id/invoices/$invoice->order_id\n\n" .
-                                    "INI ADALAH PESAN OTOMATIS";
-
-                                $this->msg($updatePesanan->no_pembeli, $pesanSukses);
+                            if ($invoice->tipe_transaksi == 'voucher') {
+                                $updateData['voucher'] = $ser_n;
                             }
-                        } elseif ($updateStatus == 'Gagal') {
-                            $this->handleRefund($invoice, $updatePesanan);
+
+                            $invoice->update($updateData);
+
+                            $updatePesanan = Pembayaran::where('order_id', $invoice->order_id)->first();
+
+                            if ($updateStatus == 'Sukses') {
+                                if ($updatePesanan) {
+                                    $pesanSukses = "*Pembelian Sukses*\n\n" .
+                                        "No Invoice: *$invoice->order_id*\n" .
+                                        "Layanan: *$invoice->layanan*\n" .
+                                        "ID : *$invoice->user_id*\n" .
+                                        "Server : *$invoice->zone*\n" .
+                                        "Nickname : *$invoice->nickname*\n" .
+                                        "Harga: *Rp. " . number_format($invoice->harga, 0, '.', ',') . "*\n" .
+                                        "Status Pembelian: *Sukses*\n" .
+                                        "Metode Pembayaran: *$updatePesanan->metode*\n\n" .
+                                        "*Invoice* : " . env("APP_URL") . "/id/invoices/$invoice->order_id\n\n" .
+                                        "INI ADALAH PESAN OTOMATIS";
+
+                                    $this->msg($updatePesanan->no_pembeli, $pesanSukses);
+                                }
+                            } elseif ($updateStatus == 'Gagal') {
+                                $this->handleRefund($invoice, $updatePesanan);
+                            }
+                            
+                            return response()->json(['success' => true, 'message' => 'Invoice status updated to ' . $updateStatus]);
+                        } else {
+                            // Jika status dari Digiflazz adalah Pending, simpan log respons saja tanpa merubah status menjadi Pending
+                            $invoice->update([
+                                'log' => json_encode($data)
+                            ]);
+                            return response()->json(['success' => true, 'message' => 'Invoice log updated (still processing)']);
                         }
-                        
-                        return response()->json(['success' => true, 'message' => 'Invoice updated']);
                     }
                     
                     return response()->json(['success' => false, 'message' => 'Invoice not found or already processed']);

@@ -9,6 +9,14 @@
         <div class="card">
             <div class="card-body">
                 <h4 class="header-title mt-0 mb-1">Harga Produk Digiflazz</h4>
+                @if(isset($error))
+                <div class="alert alert-danger" role="alert">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    {{ $error }}
+                </div>
+                @endif
+
+                @if(isset($data))
                 <div id="loadingSpinnerDigiflazz" class="text-center">
                     <div class="spinner-border text-primary" role="status">
                         <span class="visually-hidden">Loading...</span>
@@ -58,6 +66,7 @@
                         </tbody>
                     </table>
                 </div>
+                @endif
             </div>
         </div>
     </div>
@@ -66,11 +75,13 @@
 </div>
 <script>
 $(document).ready(function() {
-    setTimeout(function() {
-        $('#loadingSpinnerDigiflazz').addClass('d-none');
-        $('#digiflazzTableContainer').removeClass('d-none');
-        $('#digiflazz-table').DataTable();
-    }, 500); // Adjust the delay as needed
+    if ($('#digiflazz-table').length > 0) {
+        setTimeout(function() {
+            $('#loadingSpinnerDigiflazz').addClass('d-none');
+            $('#digiflazzTableContainer').removeClass('d-none');
+            $('#digiflazz-table').DataTable();
+        }, 500); // Adjust the delay as needed
+    }
 });
 </script>
 

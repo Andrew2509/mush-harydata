@@ -52,10 +52,12 @@ class DigiflazzdashboardController extends Controller
                 'sign' => $sign
             ]);
             
-            if(isset($data['data'])) {
+            // Cek apakah data berupa list produk (bukan error object dengan rc/message)
+            if (isset($data['data']) && is_array($data['data']) && isset($data['data'][0])) {
                 return view('admin.digiflazz.harga', ['data' => $data['data']]);
             } else {
-                return view('admin.digiflazz.harga', ['error' => $data['message'] ?? 'Data structure is invalid']);
+                $errorMsg = $data['data']['message'] ?? $data['message'] ?? 'Gagal mengambil pricelist';
+                return view('admin.digiflazz.harga', ['error' => $errorMsg]);
             }
         } catch (\Exception $e) {
             return view('admin.digiflazz.harga', ['error' => $e->getMessage()]);

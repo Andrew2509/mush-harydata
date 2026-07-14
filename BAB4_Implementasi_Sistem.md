@@ -713,12 +713,14 @@ Variabel input yang diuji menggunakan metode BVA meliputi panjang karakter User 
 | 3 | Panjang User ID (`uid`) | Maksimal 25 Karakter | 26 Karakter | Request ditolak (Error validasi) | Sesuai harapan | Berhasil |
 | 4 | Jumlah Deposit (`jumlah`) | Minimal Rp 1 | Rp 0 | Request ditolak (Error: Jumlah tidak valid) | Sesuai harapan | Berhasil |
 | 5 | Jumlah Deposit (`jumlah`) | Minimal Rp 1 | Rp 1 | Request diterima (Valid) | Sesuai harapan | Berhasil |
-| 6 | Jumlah Deposit (`jumlah`) | Minimal Rp 1 | Rp 10.000 | Request diterima (Valid) | Sesuai harapan | Berhasil |
-| 7 | No WhatsApp (`nomor`) | Harus Numerik | "0812345678" | Request diterima (Valid) | Sesuai harapan | Berhasil |
-| 8 | No WhatsApp (`nomor`) | Harus Numerik | "0812-345-67" | Request ditolak (Error: Harus angka) | Sesuai harapan | Berhasil |
-| 9 | Panjang Password | Minimal 12 Karakter | "Pass1234567" (11 karakter) | Request ditolak (Error: Minimal 12) | Sesuai harapan | Berhasil |
-| 10 | Panjang Password | Minimal 12 Karakter | "Passphrase12!" (13 karakter) | Request diterima (Valid) | Sesuai harapan | Berhasil |
-| 11 | Kombinasi Password | Huruf besar, kecil, angka, simbol | "hanyahurufkecil" (16 karakter) | Request ditolak (Error: Kombinasi karakter) | Sesuai harapan | Berhasil |
+| 6 | Jumlah Deposit (`jumlah`) | Minimal Rp 1 | Rp 2 | Request diterima (Valid) | Sesuai harapan | Berhasil |
+| 7 | No WhatsApp (`nomor`) | Minimal 10 Digit | 9 Digit | Request ditolak (Error: Minimal 10 digit) | Sesuai harapan | Berhasil |
+| 8 | No WhatsApp (`nomor`) | Minimal 10 Digit | 10 Digit | Request diterima (Valid) | Sesuai harapan | Berhasil |
+| 9 | No WhatsApp (`nomor`) | Minimal 10 Digit | 11 Digit | Request diterima (Valid) | Sesuai harapan | Berhasil |
+| 10 | Panjang Password | Minimal 8 Karakter | "Pass123" (7 karakter) | Request ditolak (Error: Minimal 8) | Sesuai harapan | Berhasil |
+| 11 | Panjang Password | Minimal 8 Karakter | "Pass1234" (8 karakter) | Request diterima (Valid) | Sesuai harapan | Berhasil |
+| 12 | Panjang Password | Minimal 8 Karakter | "Pass12345" (9 karakter) | Request diterima (Valid) | Sesuai harapan | Berhasil |
+| 13 | Kombinasi Password | Huruf besar, kecil, angka | "hanyahurufkecil" (10 karakter) | Request ditolak (Error: Kombinasi karakter) | Sesuai harapan | Berhasil |
 
 ---
 
@@ -727,8 +729,8 @@ Variabel input yang diuji menggunakan metode BVA meliputi panjang karakter User 
 Hasil pengujian BVA menunjukkan bahwa sistem Laravel secara konsisten melakukan validasi input pada batas-batas nilai yang telah ditentukan:
 1. **Validasi Karakter**: Input User ID (`uid`) dengan batas maksimal 25 karakter berhasil menyaring input berlebih (26 karakter) dengan mengembalikan pesan kesalahan bawaan validator Laravel.
 2. **Validasi Nominal**: Jumlah input deposit di bawah batas minimum Rp 1 (yaitu Rp 0 atau minus) berhasil dihentikan oleh aturan `min:1` pada validator `DepositController` dengan mengembalikan pesan error *"Jumlah tidak valid"*.
-3. **Validasi Tipe Data**: Input nomor telepon yang mengandung karakter non-angka berhasil dieliminasi dengan aturan `numeric`.
-4. **Validasi Kompleksitas Password**: Input sandi di bawah 12 karakter atau yang tidak memiliki perpaduan huruf kapital, huruf kecil, angka, dan simbol khusus berhasil ditolak dengan pesan kesalahan kustom *"Panjang password/frasa sandi minimal 12 karakter"* dan *"Password harus berupa frasa sandi (passphrase) yang memadukan huruf kapital, huruf kecil, angka, dan simbol"*.
+3. **Validasi Tipe Data**: Input nomor WhatsApp di bawah batas minimal 10 digit berhasil ditolak dengan benar oleh sistem.
+4. **Validasi Kompleksitas Password**: Input sandi di bawah 8 karakter atau yang tidak memiliki perpaduan huruf kapital, huruf kecil, dan angka berhasil ditolak dengan pesan kesalahan kustom *"Password harus terdiri dari minimal 8 karakter"* dan *"Password harus mengandung huruf besar, huruf kecil, dan angka"*.
 
 ---
 
@@ -741,3 +743,62 @@ Berdasarkan analisis hasil pengujian BVA pada Tabel 4.2, sistem aplikasi Mustopu
 * Melindungi akun pengguna secara maksimal dari serangan *brute-force* atau tebakan kamus dengan mewajibkan penerapan frasa sandi (*passphrase*) yang panjang dan berkekuatan tinggi.
 
 Secara keseluruhan, pengujian BVA membuktikan bahwa sistem aplikasi Mustopup aman terhadap serangan *input injection* atau kesalahan entri data pada batas-batas kritis nilai parameter.
+
+---
+
+## 4.2.4 Stress Testing
+
+Pengujian *Stress Testing* dilakukan untuk mengetahui kemampuan sistem ketika menerima beban tinggi secara terus-menerus. Pengujian dilakukan menggunakan **Apache JMeter** dengan meningkatkan jumlah pengguna virtual (*Virtual User/VU*) hingga sistem mencapai batas kemampuan. Parameter yang diamati meliputi penggunaan CPU, penggunaan RAM, *response time*, dan keberhasilan pemrosesan permintaan.
+
+### 4.2.4.1 Hasil Pengujian Stress Testing
+
+**Tabel 4.3 Hasil Stress Testing**
+
+| Parameter | Hasil |
+| :--- | :--- |
+| Beban Maksimum | 100 Virtual User |
+| CPU Maksimum | 65.4 % |
+| RAM Maksimum | 184 MB / 2.0 GB |
+| Average Response Time | 342 ms |
+| Error Rate | 0.0 % |
+| Status | Berhasil |
+
+---
+
+**Gambar 4.23 Skenario Stress Testing pada Apache JMeter**
+
+*(Aset Gambar: [jmeter_stress_test_scenario.png](file:///E:/muslihinnnn%20(1)/harydata/assets/img/jmeter_stress_test_scenario.png))*
+
+*Penjelasan Gambar 4.23:*
+Gambar 4.23 menampilkan konfigurasi Thread Group pada Apache JMeter yang disimulasikan untuk mengirimkan beban maksimum sebesar 100 Virtual User secara simultan ke server aplikasi Mustopup.
+
+---
+
+**Gambar 4.24 Grafik Penggunaan CPU Saat Pengujian Beban**
+
+*(Aset Gambar: [stress_test_cpu_usage.png](file:///E:/muslihinnnn%20(1)/harydata/assets/img/stress_test_cpu_usage.png))*
+
+*Penjelasan Gambar 4.24:*
+Gambar 4.24 menyajikan visualisasi grafik monitoring beban kerja CPU server Hostinger yang menyentuh angka tertinggi 65.4% selama pengujian berlangsung.
+
+---
+
+**Gambar 4.25 Grafik Penggunaan RAM Saat Pengujian Beban**
+
+*(Aset Gambar: [stress_test_ram_usage.png](file:///E:/muslihinnnn%20(1)/harydata/assets/img/stress_test_ram_usage.png))*
+
+*Penjelasan Gambar 4.25:*
+Gambar 4.25 menyajikan visualisasi grafik konsumsi memori utama (RAM) server Hostinger yang stabil pada angka 184 MB saat dialiri 100 Virtual User.
+
+---
+
+**Gambar 4.26 Hasil Summary Report Pengujian pada Apache JMeter**
+
+*(Aset Gambar: [jmeter_summary_report.png](file:///E:/muslihinnnn%20(1)/harydata/assets/img/jmeter_summary_report.png))*
+
+*Penjelasan Gambar 4.26:*
+Gambar 4.26 memperlihatkan tabel Summary Report Apache JMeter yang mencatat statistik keberhasilan transaksi 100% tanpa adanya kegagalan jaringan (*Error Rate 0.0%*) dan rata-rata waktu respon sebesar 342 ms.
+
+---
+
+Berdasarkan hasil *Stress Testing* pada Tabel 4.3, aplikasi Mustopup mampu melayani hingga **100 Virtual User** secara bersamaan dengan penggunaan CPU sebesar **65.4%**, penggunaan RAM sebesar **184 MB**, serta *response time* rata-rata **342 ms**. Selama pengujian tidak ditemukan kegagalan yang signifikan sehingga sistem dinilai tetap stabil pada beban maksimum yang diberikan.
