@@ -426,6 +426,9 @@ public function detail($id)
                     }
                 }
 
+                // Dapatkan thumbnail secara cerdas
+                $thumbnail = $this->getBrandLogo($brand);
+
                 // Tambahkan kategori baru
                 $kategori = new Kategori();
                 $kategori->nama = $brand;
@@ -433,7 +436,7 @@ public function detail($id)
                 $kategori->kode = $slug;
                 $kategori->server_id = 0;
                 $kategori->tipe = $tipe;
-                $kategori->thumbnail = '/assets/thumbnail/default.png'; // default placeholder
+                $kategori->thumbnail = $thumbnail; 
                 $kategori->banner = '/assets/banner_game/default.png'; // default placeholder
                 $kategori->status = 'active';
                 $kategori->deskripsi_game = 'Topup ' . $brand . ' instan 24 jam aman dan terpercaya.';
@@ -457,5 +460,59 @@ public function detail($id)
         } catch (\Exception $e) {
             return back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
+    }
+
+    private function getBrandLogo($brand)
+    {
+        $slug = Str::slug($brand);
+        $dir = public_path('assets/thumbnail');
+        
+        if (is_dir($dir)) {
+            $files = scandir($dir);
+            foreach ($files as $file) {
+                if ($file === '.' || $file === '..') {
+                    continue;
+                }
+                $filename = strtolower($file);
+                
+                // Cek jika nama file mengandung slug
+                if (str_contains($filename, $slug)) {
+                    return '/assets/thumbnail/' . $file;
+                }
+                
+                // Atau sebaliknya (misal slug mengandung nama file tanpa ekstensi)
+                $fileWithoutExt = pathinfo($filename, PATHINFO_FILENAME);
+                if (str_contains($slug, $fileWithoutExt) && strlen($fileWithoutExt) > 3) {
+                    return '/assets/thumbnail/' . $file;
+                }
+            }
+        }
+
+        // Manual mapping fallback untuk merk-merk terkenal
+        $mapping = [
+            'telkomsel' => '/assets/thumbnail/telkmsel.webp',
+            'xl' => '/assets/thumbnail/axis.png', 
+            'axis' => '/assets/thumbnail/axis.png',
+            'by.u' => '/assets/thumbnail/byu.png',
+            'byu' => '/assets/thumbnail/byu.png',
+            'indosat' => '/assets/thumbnail/indosat.png',
+            'smartfren' => '/assets/thumbnail/Smartfren_2011.webp',
+            'gopay' => '/assets/thumbnail/1568261197-gopay-small.webp',
+            'dana' => '/assets/thumbnail/dana.png',
+            'ovo' => '/assets/thumbnail/Logo_dana_blue.svg.png',
+            'shopeepay' => '/assets/thumbnail/dana.png',
+            'free fire' => '/assets/thumbnail/free_fire.png',
+            'mobile legends' => '/assets/thumbnail/mlbbbill_11zon.webp',
+            'pubg' => '/assets/thumbnail/pubgbill_11zon.webp',
+            'netflix' => '/assets/thumbnail/netflix.jpg',
+        ];
+
+        foreach ($mapping as $key => $path) {
+            if (str_contains(strtolower($brand), $key)) {
+                return $path;
+            }
+        }
+
+        return '/assets/thumbnail/default.png';
     }
 }

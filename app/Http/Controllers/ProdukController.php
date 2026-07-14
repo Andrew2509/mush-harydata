@@ -266,18 +266,18 @@ class ProdukController extends Controller
                                 $tipe = 'app';
                             }
 
-                            $dataGames = new Kategori();
-                            $dataGames->nama = $product['brand'];
-                            $dataGames->sub_nama = $product['brand'];
-                            $dataGames->kode = Str::slug($product['brand']);
-                            $dataGames->server_id = 0;
-                            $dataGames->tipe = $tipe;
-                            $dataGames->thumbnail = '/assets/thumbnail/default.png';
-                            $dataGames->banner = '/assets/banner_game/default.png';
-                            $dataGames->status = 'active';
-                            $dataGames->deskripsi_game = 'Topup ' . $product['brand'] . ' instan 24 jam aman.';
-                            $dataGames->deskripsi_field = 'Masukkan nomor HP atau ID target Anda.';
-                            $dataGames->save();
+                             $dataGames = new Kategori();
+                             $dataGames->nama = $product['brand'];
+                             $dataGames->sub_nama = $product['brand'];
+                             $dataGames->kode = Str::slug($product['brand']);
+                             $dataGames->server_id = 0;
+                             $dataGames->tipe = $tipe;
+                             $dataGames->thumbnail = $this->getBrandLogo($product['brand']);
+                             $dataGames->banner = '/assets/banner_game/default.png';
+                             $dataGames->status = 'active';
+                             $dataGames->deskripsi_game = 'Topup ' . $product['brand'] . ' instan 24 jam aman.';
+                             $dataGames->deskripsi_field = 'Masukkan nomor HP atau ID target Anda.';
+                             $dataGames->save();
 
                             DB::table('custom_inputs')->insert([
                                 'kategori_id' => $dataGames->id,
@@ -405,7 +405,7 @@ public function syncAllDigiflazz(Request $request)
                 $dataGames->kode = Str::slug($product['brand']);
                 $dataGames->server_id = 0;
                 $dataGames->tipe = $tipe;
-                $dataGames->thumbnail = '/assets/thumbnail/default.png';
+                $dataGames->thumbnail = $this->getBrandLogo($product['brand']);
                 $dataGames->banner = '/assets/banner_game/default.png';
                 $dataGames->status = 'active';
                 $dataGames->deskripsi_game = 'Topup ' . $product['brand'] . ' instan 24 jam aman.';
@@ -599,5 +599,57 @@ public function patch(Request $request, $id)
     return redirect()->back()->with('success', 'Profit berhasil diperbarui untuk kategori: ' . $kategori. ' Silahkan klik sync untuk merubah harga');
 }
 
+    private function getBrandLogo($brand)
+    {
+        $slug = Str::slug($brand);
+        $dir = public_path('assets/thumbnail');
+        
+        if (is_dir($dir)) {
+            $files = scandir($dir);
+            foreach ($files as $file) {
+                if ($file === '.' || $file === '..') {
+                    continue;
+                }
+                $filename = strtolower($file);
+                
+                // Cek jika nama file mengandung slug
+                if (str_contains($filename, $slug)) {
+                    return '/assets/thumbnail/' . $file;
+                }
+                
+                // Atau sebaliknya (misal slug mengandung nama file tanpa ekstensi)
+                $fileWithoutExt = pathinfo($filename, PATHINFO_FILENAME);
+                if (str_contains($slug, $fileWithoutExt) && strlen($fileWithoutExt) > 3) {
+                    return '/assets/thumbnail/' . $file;
+                }
+            }
+        }
 
+        // Manual mapping fallback untuk merk-merk terkenal
+        $mapping = [
+            'telkomsel' => '/assets/thumbnail/telkmsel.webp',
+            'xl' => '/assets/thumbnail/axis.png', 
+            'axis' => '/assets/thumbnail/axis.png',
+            'by.u' => '/assets/thumbnail/byu.png',
+            'byu' => '/assets/thumbnail/byu.png',
+            'indosat' => '/assets/thumbnail/indosat.png',
+            'smartfren' => '/assets/thumbnail/Smartfren_2011.webp',
+            'gopay' => '/assets/thumbnail/1568261197-gopay-small.webp',
+            'dana' => '/assets/thumbnail/dana.png',
+            'ovo' => '/assets/thumbnail/Logo_dana_blue.svg.png',
+            'shopeepay' => '/assets/thumbnail/dana.png',
+            'free fire' => '/assets/thumbnail/free_fire.png',
+            'mobile legends' => '/assets/thumbnail/mlbbbill_11zon.webp',
+            'pubg' => '/assets/thumbnail/pubgbill_11zon.webp',
+            'netflix' => '/assets/thumbnail/netflix.jpg',
+        ];
+
+        foreach ($mapping as $key => $path) {
+            if (str_contains(strtolower($brand), $key)) {
+                return $path;
+            }
+        }
+
+        return '/assets/thumbnail/default.png';
+    }
 }
