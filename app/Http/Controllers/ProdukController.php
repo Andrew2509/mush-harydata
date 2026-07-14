@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Cache;
 use App\Http\Controllers\DigiFlazzController;
 
 use App\Http\Controllers\provider\topupedia\TopupediaController;
@@ -16,13 +17,78 @@ class ProdukController extends Controller
 {
     public function get($provider = null)
     {
+        try {
+            $pricelist = Cache::remember('digiflazz_pricelist_cache', 600, function () {
+                $digi = new DigiFlazzController;
+                $data = $digi->harga();
+                if ($data && isset($data['data']) && is_array($data['data']) && isset($data['data'][0])) {
+                    return $data['data'];
+                }
+                return null;
+            });
+        } catch (\Exception $e) {
+            $pricelist = null;
+        }
 
-        
-        $kategori = Kategori::get();
+        $groupedBrands = [
+            'Pulsa' => [],
+            'Data' => [],
+            'Games' => [],
+            'Voucher' => [],
+            'E-Money' => [],
+            'PLN' => [],
+            'Paket SMS & Telpon' => [],
+            'Aktivasi Voucher' => [],
+            'TV' => [],
+            'Masa Aktif' => [],
+            'Lainnya' => []
+        ];
+
+        if ($pricelist) {
+            foreach ($pricelist as $product) {
+                if (empty($product['brand'])) continue;
+
+                $brand = $product['brand'];
+                $category = strtolower($product['category'] ?? '');
+
+                // Guess the group
+                $group = 'Lainnya';
+                if (str_contains($category, 'pulsa')) {
+                    $group = 'Pulsa';
+                } elseif (str_contains($category, 'data') || str_contains($category, 'internet')) {
+                    $group = 'Data';
+                } elseif (str_contains($category, 'game')) {
+                    $group = 'Games';
+                } elseif (str_contains($category, 'voucher')) {
+                    $group = 'Voucher';
+                } elseif (str_contains($category, 'e-money') || str_contains($category, 'emoney') || str_contains($category, 'saldo')) {
+                    $group = 'E-Money';
+                } elseif (str_contains($category, 'pln')) {
+                    $group = 'PLN';
+                } elseif (str_contains($category, 'sms') || str_contains($category, 'telpon') || str_contains($category, 'telepon') || str_contains($category, 'paket sms')) {
+                    $group = 'Paket SMS & Telpon';
+                } elseif (str_contains($category, 'tv')) {
+                    $group = 'TV';
+                } elseif (str_contains($category, 'aktif')) {
+                    $group = 'Masa Aktif';
+                } elseif (str_contains($category, 'aktivasi')) {
+                    $group = 'Aktivasi Voucher';
+                }
+
+                if (!in_array($brand, $groupedBrands[$group])) {
+                    $groupedBrands[$group][] = $brand;
+                }
+            }
+        }
+
+        $localKategoris = Kategori::all();
 
         return view('admin.produk.get', [
             'title' => 'Get Produk',
-            'kategoris' => $kategori
+            'kategoris' => $localKategoris,
+            'groupedBrands' => $groupedBrands,
+            'pricelist' => $pricelist,
+            'error' => $pricelist ? null : 'Gagal mengambil data dari API Digiflazz (Limit/Error)'
         ]);
     }
 
@@ -187,7 +253,43 @@ class ProdukController extends Controller
                     if ($product['buyer_product_status'] == true && in_array($product['brand'], $kategoriArray)) {
                         $dataGames = Kategori::where('nama', $product['brand'])->first();
 
-                        if ($dataGames) {
+                        if (!$dataGames) {
+                            $tipe = 'game';
+                            $categoryLower = strtolower($product['category'] ?? '');
+                            if (str_contains($categoryLower, 'e-money') || str_contains($categoryLower, 'emoney') || str_contains($categoryLower, 'saldo')) {
+                                $tipe = 'e-money';
+                            } elseif (str_contains($categoryLower, 'voucher')) {
+                                $tipe = 'voucher';
+                            } elseif (str_contains($categoryLower, 'pulsa') || str_contains($categoryLower, 'data') || str_contains($categoryLower, 'paket') || str_contains($categoryLower, 'pln') || str_contains($categoryLower, 'token')) {
+                                $tipe = 'pulsa';
+                            } elseif (str_contains($categoryLower, 'app') || str_contains($categoryLower, 'premium') || str_contains($categoryLower, 'streaming')) {
+                                $tipe = 'app';
+                            }
+
+                            $dataGames = new Kategori();
+                            $dataGames->nama = $product['brand'];
+                            $dataGames->sub_nama = $product['brand'];
+                            $dataGames->kode = Str::slug($product['brand']);
+                            $dataGames->server_id = 0;
+                            $dataGames->tipe = $tipe;
+                            $dataGames->thumbnail = '/assets/thumbnail/default.png';
+                            $dataGames->banner = '/assets/banner_game/default.png';
+                            $dataGames->status = 'active';
+                            $dataGames->deskripsi_game = 'Topup ' . $product['brand'] . ' instan 24 jam aman.';
+                            $dataGames->deskripsi_field = 'Masukkan User ID Anda.';
+                            $dataGames->save();
+
+                            DB::table('custom_inputs')->insert([
+                                'kategori_id' => $dataGames->id,
+                                'field_1' => 'User ID,id,number',
+                                'field_2' => null,
+                                'field_select_title' => null,
+                                'field_select' => null,
+                            ]);
+                        }
+
+                        $existingLayanan = Layanan::where('provider_id', $product['buyer_sku_code'])->first();
+                        if (!$existingLayanan) {
                             $layanan = new Layanan();
                             $layanan->kategori_id = $dataGames->id;
                             $layanan->layanan = $product['product_name'];

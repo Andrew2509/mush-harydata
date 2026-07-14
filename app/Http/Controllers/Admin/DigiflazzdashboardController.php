@@ -52,6 +52,7 @@ class DigiflazzdashboardController extends Controller
             $cachedData = Cache::remember('digiflazz_pricelist_cache', 600, function () {
                 $sign = md5($this->username_digi . $this->api . 'pricelist');
                 $data = $this->connect('/v1/price-list', [
+                    'cmd' => 'prepaid',
                     'sign' => $sign
                 ]);
                 

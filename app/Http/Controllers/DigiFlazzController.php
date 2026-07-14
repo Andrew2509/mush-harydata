@@ -51,6 +51,7 @@ class DigiFlazzController extends Controller
         
         $sign = md5($api->username_digi . $api->api_key_digi . "pricelist");
         $data = [
+            'cmd' => 'prepaid',
             'username' => $api->username_digi,
             'sign' => $sign
         ];
@@ -92,6 +93,7 @@ class DigiFlazzController extends Controller
         
         $sign = md5($api->username_digi . $api->api_key_digi . "pricelist");
         $data = [
+            'cmd' => 'prepaid',
             'username' => $api->username_digi,
             'sign' => $sign
         ];

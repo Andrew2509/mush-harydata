@@ -1,204 +1,337 @@
 @extends('layouts.admin')
 
 @section('content')
-
 <style>
-  
-.hvrbutton {
-    transition: all 0.3s ease-in-out;
-     border-radius:10px;
-    
-}
-
-.hvrbutton:hover {
-    transform: perspective(1000px) rotateY(10deg);
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-   
-}
-
+    .sidebar-menu-card .list-group-item {
+        background-color: transparent;
+        color: #e8eaf6;
+        border: none;
+        padding: 0.8rem 1.2rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .sidebar-menu-card .list-group-item:hover {
+        background-color: rgba(255, 255, 255, 0.05);
+        color: #00f0ff;
+    }
+    .sidebar-menu-card .list-group-item.active {
+        background-color: rgba(0, 240, 255, 0.12);
+        color: #00f0ff;
+        border-left: 3px solid #00f0ff;
+    }
+    .top-tab-nav {
+        border-bottom: 2px solid rgba(255, 255, 255, 0.08);
+        margin-bottom: 1.5rem;
+        overflow-x: auto;
+        white-space: nowrap;
+        flex-wrap: nowrap;
+    }
+    .top-tab-nav .nav-link {
+        color: #a5a9c0;
+        background: transparent;
+        border: none;
+        border-bottom: 3px solid transparent;
+        padding: 0.8rem 1.2rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }
+    .top-tab-nav .nav-link:hover {
+        color: #00f0ff;
+    }
+    .top-tab-nav .nav-link.active {
+        color: #00f0ff;
+        border-bottom-color: #007bff;
+        background: transparent;
+    }
+    .brand-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        max-height: 450px;
+        overflow-y: auto;
+        padding: 5px;
+    }
+    .brand-btn {
+        border: 1px solid rgba(0, 123, 255, 0.25);
+        background-color: rgba(0, 123, 255, 0.03);
+        color: #007bff;
+        font-weight: 500;
+        font-size: 0.85rem;
+        padding: 6px 16px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+    .brand-btn:hover {
+        border-color: #007bff;
+        background-color: rgba(0, 123, 255, 0.08);
+        color: #007bff;
+    }
+    .brand-btn.active {
+        background-color: #007bff !important;
+        border-color: #007bff !important;
+        color: #fff !important;
+        box-shadow: 0 4px 10px rgba(0, 123, 255, 0.3);
+    }
+    .search-kategori-input {
+        background-color: rgba(15, 20, 40, 0.6) !important;
+        border: 1px solid rgba(255, 255, 255, 0.12) !important;
+        color: #fff !important;
+        border-radius: 6px;
+    }
+    .search-kategori-input::placeholder {
+        color: #5a6380;
+    }
+    .search-kategori-input:focus {
+        border-color: #00f0ff !important;
+        box-shadow: 0 0 8px rgba(0, 240, 255, 0.2) !important;
+    }
+    .profit-card {
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        background-color: rgba(15, 20, 40, 0.4);
+    }
+    .preview-table th {
+        color: #5a6380;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+    }
 </style>
+
 <div class="container-xxl flex-grow-1 container-p-y">
-<div class="card mb-3">
-    <div class="card-body">
-            <!-- Display validation errors -->
-@if ($errors->any())
-    <div class="alert alert-danger">
-        <ul>
-            @foreach ($errors->all() as $error)
-                <li>{{ $error }}</li>
-            @endforeach
-        </ul>
+    {{-- Page Path Title --}}
+    <div style="font-size:0.85rem;color:#a5a9c0;margin-bottom:1rem;">
+        Daftar Produk Prabayar <i class="fas fa-chevron-right mx-2" style="font-size:0.7rem;"></i> <span style="color:#fff;">Tambah</span>
     </div>
-@endif
 
-@if(session('success'))
-<div class="alert alert-success">
-    {{ session('success') }}
-</div>
-@endif
+    @if ($errors->any())
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <ul class="mb-0">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
 
-            <div class="card-header p-4">Sync Product Automatic</div>
-            <div class="card-body">
-                
-                <!--<form method="POST" action="{{ route('sync.produk.get.post') }}">-->
-                <!--    @csrf-->
-                <!--    <div class="pb-2 sm:mt-0 mr-auto flex flex-col md:flex-row gap-2">-->
-                <!--        <button type="submit" class="rounded-4 inline-flex items-center justify-center rounded-md px-4 py-2.5 font-medium duration-300 gap-2 disabled:cursor-not-allowed bg-secondary-400 text-theme-text disabled:bg-secondary-200 hvrbutton">-->
-                <!--            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true" width="16" height="16">-->
-                <!--                <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 0v3.75m-16.5-3.75v3.75m16.5 0v3.75C20.25 16.153 16.556 18 12 18s-8.25-1.847-8.25-4.125v-3.75m16.5 0c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125"></path>-->
-                <!--            </svg>-->
-                <!--            <div>Sync</div>-->
-                <!--        </button>-->
-                        
-                <!--        <a href="javascript:;" onclick="modal('EditProfit', '{{ route('detail.produk.get', 1) }}')">-->
-                <!--            <button class="rounded-4 inline-flex items-center justify-center rounded-md px-4 py-2.5 font-medium duration-300 gap-2 disabled:cursor-not-allowed bg-secondary-400 text-theme-text disabled:bg-secondary-200 hvrbutton" type="button">-->
-                <!--              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true" width="16" height="16">-->
-                <!--                 <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z"></path>-->
-                <!--              </svg>-->
-                              
-                <!--              <div>Update Price</div>-->
-                <!--            </button>-->
-                <!--        </a>-->
-                <!--    </div>-->
-                <!-- </form>-->
-                
-                <form action="" method="POST" id="produkForm">
-                    @csrf
-                    <table class="table">
-                        
-                        <div class="mb-3 row">
-                            <label class="col-lg-2 col-form-label">Provider</label>
-                            <div class="col-lg-10">
-                                <select class="form-select" name="provider">
-                                    <option value="digiflazz">DigiFlazz</option>
-                                </select>
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i>
+            {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
+    @if(session('error') || isset($error))
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            {{ session('error') ?? $error }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
+    <div class="row">
+        {{-- Left Sidebar --}}
+        <div class="col-lg-3 col-md-4 mb-4">
+            <div class="card sidebar-menu-card" style="border:1px solid rgba(255,255,255,0.08);border-radius:12px;">
+                <div class="list-group list-group-flush">
+                    <a href="{{ url('/layanan') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-box"></i> Produk Baru
+                    </a>
+                    <a href="{{ route('produk.get') }}" class="list-group-item list-group-item-action active">
+                        <i class="fas fa-download"></i> Daftar Produk
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        {{-- Main Content --}}
+        <div class="col-lg-9 col-md-8">
+            <div class="card" style="border:1px solid rgba(255,255,255,0.08);border-radius:12px;">
+                <div class="card-body p-4">
+                    {{-- Search Kategori --}}
+                    <div class="mb-4" style="max-width: 320px;">
+                        <input type="text" id="searchKategori" class="form-control search-kategori-input" placeholder="Cari kategori...">
+                    </div>
+
+                    {{-- Horizontal Tabs --}}
+                    <ul class="nav nav-tabs top-tab-nav" id="categoryTabs" role="tablist">
+                        @foreach(array_keys($groupedBrands) as $index => $groupName)
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link @if($index === 2) active @endif" id="tab-{{ Str::slug($groupName) }}" data-bs-toggle="tab" data-bs-target="#pane-{{ Str::slug($groupName) }}" type="button" role="tab" aria-controls="pane-{{ Str::slug($groupName) }}" aria-selected="{{ $index === 2 ? 'true' : 'false' }}">
+                                    {{ $groupName }}
+                                </button>
+                            </li>
+                        @endforeach
+                    </ul>
+
+                    {{-- Tab Content (Brand Badges) --}}
+                    <div class="tab-content" id="categoryTabContent">
+                        @foreach($groupedBrands as $groupName => $brands)
+                            <div class="tab-pane fade @if($loop->index === 2) show active @endif" id="pane-{{ Str::slug($groupName) }}" role="tabpanel" aria-labelledby="tab-{{ Str::slug($groupName) }}">
+                                @if(empty($brands))
+                                    <div class="text-center py-4 text-muted">Tidak ada kategori untuk grup ini.</div>
+                                @else
+                                    <div class="brand-grid mb-4">
+                                        @foreach($brands as $brand)
+                                            <button type="button" class="brand-btn" data-brand="{{ $brand }}">
+                                                {{ $brand }}
+                                            </button>
+                                        @endforeach
+                                    </div>
+                                @endif
                             </div>
-                        </div>
-                        <div class="mb-2 row">
-                            <label class="col-lg-2 col-form-label">Kategori</label>
-                            <div class="col-lg-10">
-                                <select class="form-select" name="kategori" id="kategoriSelect">
-                                        <option value="">Pilih Kategori Game...</option>
-                                    @foreach($kategoris as $kategori)
-                                        <option value="{{ $kategori->nama }}">{{ $kategori->nama }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                        </div>
+                        @endforeach
+                    </div>
+
+                    {{-- Form Area (Hidden until a brand is selected) --}}
+                    <div id="syncFormContainer" style="display: none; margin-top: 2rem;">
+                        <hr style="border-color: rgba(255,255,255,0.08); margin-bottom: 2rem;">
                         
-                        <div class="mb-2 row profit-inputs" style="display: none;">
-                            <label class="col-lg-2 col-form-label">Profit</label>
-                            <div class="col-lg-10">
-                                <input type="number" step="0.01" class="form-control" value="{{ old('profit') }}" name="profit">
-                            </div>
-                            
+                        <div class="card profit-card p-4">
+                            <h5 style="color:#00f0ff;font-family:'Orbitron',sans-serif;margin-bottom:1.5rem;" id="selectedBrandTitle">
+                                SINKRONISASI PRODUK: <span id="brandNameDisplay"></span>
+                            </h5>
+
+                            <form action="{{ route('produk.get.post') }}" method="POST" id="produkForm">
+                                @csrf
+                                <input type="hidden" name="provider" value="digiflazz">
+                                <input type="hidden" name="kategori" id="hiddenKategoriInput">
+
+                                <div class="row">
+                                    <div class="col-md-3 col-sm-6 mb-3">
+                                        <label class="form-label text-white">Profit Publik (%)</label>
+                                        <input type="number" step="0.01" class="form-control" name="profit" required placeholder="0">
+                                    </div>
+                                    <div class="col-md-3 col-sm-6 mb-3">
+                                        <label class="form-label text-white">Profit Member (%)</label>
+                                        <input type="number" step="0.01" class="form-control" name="profit_member" required placeholder="0">
+                                    </div>
+                                    <div class="col-md-3 col-sm-6 mb-3">
+                                        <label class="form-label text-white">Profit Platinum (%)</label>
+                                        <input type="number" step="0.01" class="form-control" name="profit_platinum" required placeholder="0">
+                                    </div>
+                                    <div class="col-md-3 col-sm-6 mb-3">
+                                        <label class="form-label text-white">Profit Gold (%)</label>
+                                        <input type="number" step="0.01" class="form-control" name="profit_gold" required placeholder="0">
+                                    </div>
+                                </div>
+
+                                <div class="mb-4 d-flex align-items-center gap-3">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="ubahRouteCheckbox" name="ubah_route">
+                                        <label class="form-check-label text-white ms-2" for="ubahRouteCheckbox">Sync Product? (Gunakan jika ingin update harga yang sudah ada)</label>
+                                    </div>
+                                </div>
+
+                                <div class="text-end">
+                                    <button class="btn btn-secondary me-2" type="button" id="cancelFormBtn">Batal</button>
+                                    <button class="btn btn-primary" type="submit" id="submitFormBtn">Simpan & Ambil Produk</button>
+                                </div>
+                            </form>
                         </div>
-                        
-                        <div class="mb-2 row profit-inputs" style="display: none;">
-                        <label class="col-lg-2 col-form-label">Profit Member</label>
-                            <div class="col-lg-10">
-                                <input type="number" step="0.01" class="form-control" value="{{ old('profit_member') }}" name="profit_member">
-                            </div>
-                        </div>
-                        
-                        <div class="mb-2 row profit-inputs" style="display: none;">
-                            <label class="col-lg-2 col-form-label">Profit Platinum</label>
-                            <div class="col-lg-10">
-                                <input type="number" step="0.01" class="form-control" value="{{ old('profit_platinum') }}" name="profit_platinum">
-                            </div>
-                            
-                        </div>
-                        
-                        <div class="mb-2 row profit-inputs" style="display: none;">
-                        <label class="col-lg-2 col-form-label">Profit Gold</label>
-                            <div class="col-lg-10">
-                                <input type="number" step="0.01" class="form-control" value="{{ old('profit_gold') }}" name="profit_gold">
-                            </div>
-                        </div>
-                    </table>
-                   <div class="mb-2 row">
-                        <label class="col-lg-2 col-form-label">Sync Product?</label>
-                        <div class="col-lg-10">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" id="ubahRouteCheckbox" name="ubah_route">
+
+                        {{-- Product Preview list --}}
+                        <div class="mt-4">
+                            <h5 class="text-white mb-3">Daftar Produk Digiflazz (<span id="previewCount">0</span>)</h5>
+                            <div class="table-responsive" style="max-height: 350px; overflow-y: auto; border: 1px solid rgba(255,255,255,0.08); border-radius: 8px;">
+                                <table class="table table-dark table-striped m-0 preview-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Nama Produk</th>
+                                            <th>Provider SKU</th>
+                                            <th>Harga Asli</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="previewProductBody">
+                                        <!-- Will be rendered dynamically via JS -->
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
                     </div>
-                    <a href="{{ url('/layanan') }}" class="btn btn-warning float-start">Kembali</a>
-                    <div class="text-end">
-                        <button class="btn btn-default" type="reset">Batal</button>
-                        <button class="btn btn-primary" type="submit" name="tombol" value="submit">Simpan</button>
-                        @if($errors->has('message'))
-                            <div class="alert alert-danger">
-                                {{ $errors->first('message') }}
-                            </div>
-                        @endif
-                    </div>
-                </form>
+                </div>
             </div>
         </div>
     </div>
 </div>
-
 
 <script>
-
-    document.getElementById('ubahRouteCheckbox').addEventListener('change', function () {
-        var formAction = this.checked ? "{{ route('sync.produk.get.post') }}" : "{{ route('produk.get.post') }";
-        document.getElementById('produkForm').setAttribute('action', formAction);
-    });
-    const kategoriSelect = document.getElementById('kategoriSelect');
-    const profitInputs = document.querySelectorAll('.profit-inputs');
-
-    kategoriSelect.addEventListener('change', function() {
-        const selectedValue = this.value;
-
-        
-        if (selectedValue) {
-            profitInputs.forEach(inputRow => {
-                inputRow.style.display = 'block';
-            });
-        } else {
-            profitInputs.forEach(inputRow => {
-                inputRow.style.display = 'none';
-            });
-        }
-    });
+    const pricelist = @json($pricelist ?? []);
     
-    function modal(name, link) {
-        var myModal = new bootstrap.Modal($('#modal-detail'))
-        $.ajax({
-            type: "GET",
-            url: link,
-            beforeSend: function() {
-                $('#modal-detail-title').html(name);
-                $('#modal-detail-body').html('Loading...');
-            },
-            success: function(result) {
-                $('#modal-detail-title').html(name);
-                $('#modal-detail-body').html(result);
-            },
-            error: function() {
-                $('#modal-detail-title').html(name);
-                $('#modal-detail-body').html('There is an error...');
+    $(document).ready(function () {
+        // Handle Brand Badge Click
+        $('.brand-btn').on('click', function () {
+            $('.brand-btn').removeClass('active');
+            $(this).addClass('active');
+
+            const brand = $(this).data('brand');
+            $('#hiddenKategoriInput').val(brand);
+            $('#brandNameDisplay').text(brand);
+
+            // Filter products for this brand
+            const brandProducts = pricelist.filter(p => p.brand && p.brand.trim() === brand.trim());
+            $('#previewCount').text(brandProducts.length);
+
+            let tbodyHtml = '';
+            if (brandProducts.length === 0) {
+                tbodyHtml = '<tr><td colspan="4" class="text-center py-3 text-muted">Tidak ada detail produk.</td></tr>';
+            } else {
+                brandProducts.forEach(p => {
+                    const priceFormatted = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(p.price);
+                    const statusBadge = p.buyer_product_status 
+                        ? '<span class="badge bg-success">Tersedia</span>' 
+                        : '<span class="badge bg-danger">Habis</span>';
+
+                    tbodyHtml += `
+                        <tr>
+                            <td>${p.product_name}</td>
+                            <td><code>${p.buyer_sku_code}</code></td>
+                            <td>${priceFormatted}</td>
+                            <td>${statusBadge}</td>
+                        </tr>
+                    `;
+                });
             }
+            $('#previewProductBody').html(tbodyHtml);
+
+            // Show Form
+            $('#syncFormContainer').slideDown();
         });
-        myModal.show();
-    }
-    
+
+        // Search Filter
+        $('#searchKategori').on('keyup', function () {
+            const query = $(this).val().toLowerCase();
+            
+            $('.brand-btn').each(function () {
+                const brandName = $(this).text().toLowerCase();
+                if (brandName.includes(query)) {
+                    $(this).show();
+                } else {
+                    $(this).hide();
+                }
+            });
+        });
+
+        // Toggle form action route based on "Sync Product?" checkbox
+        $('#ubahRouteCheckbox').on('change', function () {
+            const formAction = this.checked ? "{{ route('sync.produk.get.post') }}" : "{{ route('produk.get.post') }}";
+            $('#produkForm').attr('action', formAction);
+        });
+
+        // Cancel button
+        $('#cancelFormBtn').on('click', function() {
+            $('#syncFormContainer').slideUp();
+            $('.brand-btn').removeClass('active');
+        });
+    });
 </script>
-
-<div class="modal fade bs-example-modal-lg" tabindex="-1" role="dialog" id="modal-detail" style="border-radius:7%">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title" id="modal-detail-title"></h4>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body" id="modal-detail-body"></div>
-        </div>
-    </div>
-</div>
-
-
 @endsection
