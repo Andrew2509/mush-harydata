@@ -17,8 +17,8 @@ class Kernel extends ConsoleKernel
    
     protected function schedule(Schedule $schedule)
     {
-        // $schedule->command('inspire')->hourly();
-        
+        // Jalankan sinkronisasi produk & kategori Digiflazz setiap hari
+        $schedule->command('digiflazz:sync')->daily();
     }
 
     /**

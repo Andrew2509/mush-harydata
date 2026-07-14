@@ -321,37 +321,182 @@ class ProdukController extends Controller
 
     }
     
- public function sync(){
-    $digi = new DigiFlazzController;
-    $data = $digi->harga();
-        
-    if ($data && isset($data['data']) && is_array($data['data']) && isset($data['data'][0])) {
-        foreach ($data['data'] as $product) {
-            if ($product['buyer_product_status'] == true) {
-                $dataGames = Kategori::where('nama', $product['brand'])->first();
-                $dataProduct = Layanan::where('provider_id', $product['buyer_sku_code'])->first();
+    public function sync(Request $request)
+    {
+        try {
+            $digi = new DigiFlazzController();
+            
+            // 1. Ambil data prepaid
+            $dataPrepaid = $digi->harga(); // cmd => prepaid
+            
+            // 2. Ambil data postpaid (pasca)
+            $apiSetting = DB::table('setting_webs')->where('id', 1)->first();
+            $signPasca = md5($apiSetting->username_digi . $apiSetting->api_key_digi . "pricelist");
+            $dataPostpaid = $digi->connect('/v1/price-list', [
+                'cmd' => 'pasca',
+                'username' => $apiSetting->username_digi,
+                'sign' => $signPasca
+            ]);
 
-                if ($dataGames && $dataProduct) {
-                    $profit = $dataProduct->profit;
-                    $profit_member = $dataProduct->profit_member;
-                    $profit_platinum = $dataProduct->profit_platinum;
-                    $profit_gold = $dataProduct->profit_gold;
+            $pricelist = [];
+            if (isset($dataPrepaid['data']) && is_array($dataPrepaid['data'])) {
+                $pricelist = array_merge($pricelist, $dataPrepaid['data']);
+            }
+            if (isset($dataPostpaid['data']) && is_array($dataPostpaid['data'])) {
+                $pricelist = array_merge($pricelist, $dataPostpaid['data']);
+            }
 
-                    $harga = $product['price'];
-                    $dataProduct->harga = $harga + ($harga * $profit / 100);
-                    $dataProduct->harga_member = $harga + ($harga * $profit_member / 100);
-                    $dataProduct->harga_platinum = $harga + ($harga * $profit_platinum / 100);
-                    $dataProduct->harga_gold = $harga + ($harga * $profit_gold / 100);
-                    $dataProduct->save();
+            if (empty($pricelist)) {
+                return back()->with('error', 'Gagal mengambil data pricelist dari API Digiflazz (Prepaid & Pasca kosong).');
+            }
+
+            // Ambil profit default website untuk backup
+            $defaultProfit = DB::table('setting_webs')->where('id', 1)->first();
+            $pPublik = $defaultProfit->profit_public ?? 5;
+            $pMember = $defaultProfit->profit_member ?? 4;
+            $pPlatinum = $defaultProfit->profit_platinum ?? 3;
+            $pGold = $defaultProfit->profit_gold ?? 2;
+
+            $syncedSkuCodes = [];
+            $addedCategories = 0;
+            $addedProducts = 0;
+            $updatedProducts = 0;
+            $deactivatedProducts = 0;
+
+            foreach ($pricelist as $product) {
+                if (empty($product['brand']) || empty($product['buyer_sku_code'])) {
+                    continue;
+                }
+
+                $brand = trim($product['brand']);
+                $sku = trim($product['buyer_sku_code']);
+                $category = trim($product['category'] ?? '');
+                $productName = trim($product['product_name']);
+                $price = floatval($product['price'] ?? 0);
+                $isActive = ($product['buyer_product_status'] == true);
+
+                $syncedSkuCodes[] = $sku;
+
+                // 1. Sync Kategori
+                $dataGames = Kategori::where('nama', $brand)->first();
+                if (!$dataGames) {
+                    $slug = Str::slug($brand);
+                    // Tebak tipe
+                    $tipe = 'game';
+                    $categoryLower = strtolower($category);
+                    if (str_contains($categoryLower, 'e-money') || str_contains($categoryLower, 'emoney') || str_contains($categoryLower, 'saldo')) {
+                        $tipe = 'pulsa';
+                    } elseif (str_contains($categoryLower, 'voucher')) {
+                        $tipe = 'voucher';
+                    } elseif (str_contains($categoryLower, 'pulsa') || str_contains($categoryLower, 'data') || str_contains($categoryLower, 'paket') || str_contains($categoryLower, 'pln') || str_contains($categoryLower, 'token')) {
+                        $tipe = 'pulsa';
+                    } elseif (str_contains($categoryLower, 'app') || str_contains($categoryLower, 'premium') || str_contains($categoryLower, 'streaming')) {
+                        $tipe = 'app';
+                    }
+
+                    $dataGames = new Kategori();
+                    $dataGames->nama = $brand;
+                    $dataGames->sub_nama = $brand;
+                    $dataGames->kode = $slug;
+                    $dataGames->server_id = 0;
+                    $dataGames->tipe = $tipe;
+                    $dataGames->thumbnail = $this->getBrandLogo($brand);
+                    $dataGames->banner = '/assets/banner_game/default.png';
+                    $dataGames->status = 'active';
+                    $dataGames->deskripsi_game = 'Topup ' . $brand . ' instan 24 jam aman.';
+                    $dataGames->deskripsi_field = 'Masukkan nomor HP atau ID target Anda.';
+                    $dataGames->save();
+
+                    DB::table('custom_inputs')->insert([
+                        'kategori_id' => $dataGames->id,
+                        'field_1' => 'Target ID / No HP,id,number',
+                        'field_2' => null,
+                        'field_select_title' => null,
+                        'field_select' => null,
+                    ]);
+
+                    $addedCategories++;
+                }
+
+                // 2. Sync Layanan (Produk)
+                $dataProduct = Layanan::where('provider_id', $sku)->first();
+
+                if ($isActive) {
+                    if ($dataProduct) {
+                        // Update harga produk yang sudah ada menggunakan persentase profit lamanya
+                        $profit = $dataProduct->profit ?? $pPublik;
+                        $profit_member = $dataProduct->profit_member ?? $pMember;
+                        $profit_platinum = $dataProduct->profit_platinum ?? $pPlatinum;
+                        $profit_gold = $dataProduct->profit_gold ?? $pGold;
+
+                        $dataProduct->harga = $price + ($price * $profit / 100);
+                        $dataProduct->harga_member = $price + ($price * $profit_member / 100);
+                        $dataProduct->harga_platinum = $price + ($price * $profit_platinum / 100);
+                        $dataProduct->harga_gold = $price + ($price * $profit_gold / 100);
+                        $dataProduct->status = 'available';
+                        $dataProduct->save();
+
+                        $updatedProducts++;
+                    } else {
+                        // Tambahkan produk baru dengan profit default
+                        $layanan = new Layanan();
+                        $layanan->kategori_id = $dataGames->id;
+                        $layanan->layanan = $productName;
+                        $layanan->provider_id = $sku;
+                        $layanan->harga = $price + ($price * $pPublik / 100);
+                        $layanan->harga_member = $price + ($price * $pMember / 100);
+                        $layanan->harga_platinum = $price + ($price * $pPlatinum / 100);
+                        $layanan->harga_gold = $price + ($price * $pGold / 100);
+                        $layanan->profit = $pPublik;
+                        $layanan->profit_member = $pMember;
+                        $layanan->profit_platinum = $pPlatinum;
+                        $layanan->profit_gold = $pGold;
+                        $layanan->provider = 'digiflazz';
+                        $layanan->catatan = '';
+                        $layanan->status = 'available';
+                        $layanan->save();
+
+                        $addedProducts++;
+                    }
+                } else {
+                    // Jika produk tidak aktif di Digiflazz, set status lokal menjadi tidak tersedia
+                    if ($dataProduct) {
+                        $dataProduct->status = 'empty';
+                        $dataProduct->save();
+                        $deactivatedProducts++;
+                    }
                 }
             }
+
+            // 3. Deaktivasi produk lokal provider 'digiflazz' yang sudah dihapus dari API Digiflazz
+            $removedCount = Layanan::where('provider', 'digiflazz')
+                ->whereNotIn('provider_id', $syncedSkuCodes)
+                ->update(['status' => 'empty']);
+
+            $deactivatedProducts += $removedCount;
+
+            // Bersihkan cache agar daftar harga terbaru langsung tampil
+            Cache::forget('digiflazz_pricelist_cache');
+
+            if (app()->runningInConsole()) {
+                return [
+                    'success' => true,
+                    'message' => "Sinkronisasi otomatis berhasil! Menambahkan {$addedCategories} kategori baru, {$addedProducts} produk baru, memperbarui {$updatedProducts} produk, dan menonaktifkan {$deactivatedProducts} produk tidak aktif/dihapus."
+                ];
+            }
+
+            return back()->with('success', "Sinkronisasi otomatis berhasil! Menambahkan {$addedCategories} kategori baru, {$addedProducts} produk baru, memperbarui {$updatedProducts} produk, dan menonaktifkan {$deactivatedProducts} produk tidak aktif/dihapus.");
+
+        } catch (\Exception $e) {
+            if (app()->runningInConsole()) {
+                return [
+                    'success' => false,
+                    'message' => 'Terjadi kesalahan saat sinkronisasi otomatis: ' . $e->getMessage()
+                ];
+            }
+            return back()->with('error', 'Terjadi kesalahan saat sinkronisasi otomatis: ' . $e->getMessage());
         }
-        return back()->with('success', 'Berhasil Update Harga produk Digiflazz!');
-    } else {
-        $errorMsg = $data['data']['message'] ?? $data['message'] ?? 'Data Layanan Tidak Valid Dari API!';
-        return back()->with('error', $errorMsg);
     }
-}
 
 public function syncAllDigiflazz(Request $request)
 {

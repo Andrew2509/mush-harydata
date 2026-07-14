@@ -1105,6 +1105,12 @@
                         data-target-group="topup-panel">Top Up Games</button>
                     <button
                         class="tab-btn px-4 py-2 rounded-full text-[11px] font-bold whitespace-nowrap transition-all duration-300 bg-slate-800/50 text-slate-400 hover:text-white"
+                        data-target-group="pulsa-panel">Pulsa & E-Money</button>
+                    <button
+                        class="tab-btn px-4 py-2 rounded-full text-[11px] font-bold whitespace-nowrap transition-all duration-300 bg-slate-800/50 text-slate-400 hover:text-white"
+                        data-target-group="app-panel">App Premium</button>
+                    <button
+                        class="tab-btn px-4 py-2 rounded-full text-[11px] font-bold whitespace-nowrap transition-all duration-300 bg-slate-800/50 text-slate-400 hover:text-white"
                         data-target-group="mlbb-panel">Joki MLBB</button>
                     <button
                         class="tab-btn px-4 py-2 rounded-full text-[11px] font-bold whitespace-nowrap transition-all duration-300 bg-slate-800/50 text-slate-400 hover:text-white"
@@ -1127,6 +1133,20 @@
                     Top Up Games
                     <span
                         class="absolute bottom-0 left-0 w-full h-0.5 bg-secondary scale-x-100 transition-transform origin-left"></span>
+                </button>
+                <button
+                    class="tab-btn pb-4 text-sm font-bold text-slate-500 hover:text-secondary transition-colors whitespace-nowrap uppercase tracking-wider relative group"
+                    data-target-group="pulsa-panel">
+                    Pulsa & E-Money
+                    <span
+                        class="absolute bottom-0 left-0 w-full h-0.5 bg-secondary scale-x-0 group-hover:scale-x-100 transition-transform origin-left"></span>
+                </button>
+                <button
+                    class="tab-btn pb-4 text-sm font-bold text-slate-500 hover:text-secondary transition-colors whitespace-nowrap uppercase tracking-wider relative group"
+                    data-target-group="app-panel">
+                    App Premium
+                    <span
+                        class="absolute bottom-0 left-0 w-full h-0.5 bg-secondary scale-x-0 group-hover:scale-x-100 transition-transform origin-left"></span>
                 </button>
                 <button
                     class="tab-btn pb-4 text-sm font-bold text-slate-500 hover:text-secondary transition-colors whitespace-nowrap uppercase tracking-wider relative group"
@@ -1263,6 +1283,88 @@
                                 <img alt="{{ $category->nama }}"
                                     src="{{ str_contains($category->thumbnail, 'http') ? $category->thumbnail : (file_exists(public_path($category->thumbnail)) ? asset($category->thumbnail) : asset('assets/thumbnail/hok.webp')) }}"
                                     onerror="this.src='{{ asset('assets/thumbnail/hok.webp') }}'; this.onerror=null;"
+                                    class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                            </div>
+                            <div class="p-4 text-center">
+                                <h4
+                                    class="font-bold text-sm text-white uppercase mb-1 line-clamp-1 group-hover:text-secondary transition-colors">
+                                    {{ $category->nama }}</h4>
+                                <p class="text-slate-500 text-[10px] uppercase tracking-widest line-clamp-1">
+                                    {{ $category->sub_nama }}</p>
+                            </div>
+                        </a>
+                    @endif
+                @endforeach
+            </div>
+
+            <div id="pulsa-panel"
+                class="tab-content hidden grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3 sm:gap-6"
+                data-items-limit="12">
+                @foreach ($kategoris as $key => $category)
+                    @if ($category->tipe == 'pulsa')
+                        {{-- Mobile View --}}
+                        <a href="{{ url('/id/' . $category->kode) }}"
+                            class="md:hidden group relative aspect-[3/4] bg-slate-900 rounded-3xl overflow-hidden interactive-card border border-white/5 hover:border-secondary/50 transition-all duration-500 shadow-xl {{ $key >= 12 ? 'hidden extra-item' : '' }}">
+                            <img alt="{{ $category->nama }}"
+                                src="{{ str_contains($category->thumbnail, 'http') ? $category->thumbnail : (file_exists(public_path($category->thumbnail)) ? asset($category->thumbnail) : asset('assets/thumbnail/default.png')) }}"
+                                onerror="this.src='{{ asset('assets/thumbnail/default.png') }}'; this.onerror=null;"
+                                class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                            <div
+                                class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent flex flex-col justify-end p-2 sm:p-4">
+                                <h4
+                                    class="font-black text-[10px] sm:text-xs text-white uppercase text-center leading-tight drop-shadow-lg group-hover:text-secondary transition-colors">
+                                    {{ $category->nama }}</h4>
+                            </div>
+                        </a>
+
+                        {{-- Desktop View --}}
+                        <a href="{{ url('/id/' . $category->kode) }}"
+                            class="hidden md:flex flex-col group bg-slate-800/30 rounded-3xl overflow-hidden interactive-card border border-white/5 hover:border-secondary/40 transition-all {{ $key >= 12 ? 'hidden extra-item' : '' }}">
+                            <div class="aspect-square overflow-hidden relative">
+                                <img alt="{{ $category->nama }}"
+                                    src="{{ str_contains($category->thumbnail, 'http') ? $category->thumbnail : (file_exists(public_path($category->thumbnail)) ? asset($category->thumbnail) : asset('assets/thumbnail/default.png')) }}"
+                                    onerror="this.src='{{ asset('assets/thumbnail/default.png') }}'; this.onerror=null;"
+                                    class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                            </div>
+                            <div class="p-4 text-center">
+                                <h4
+                                    class="font-bold text-sm text-white uppercase mb-1 line-clamp-1 group-hover:text-secondary transition-colors">
+                                    {{ $category->nama }}</h4>
+                                <p class="text-slate-500 text-[10px] uppercase tracking-widest line-clamp-1">
+                                    {{ $category->sub_nama }}</p>
+                            </div>
+                        </a>
+                    @endif
+                @endforeach
+            </div>
+
+            <div id="app-panel"
+                class="tab-content hidden grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3 sm:gap-6"
+                data-items-limit="12">
+                @foreach ($kategoris as $key => $category)
+                    @if ($category->tipe == 'app')
+                        {{-- Mobile View --}}
+                        <a href="{{ url('/id/' . $category->kode) }}"
+                            class="md:hidden group relative aspect-[3/4] bg-slate-900 rounded-3xl overflow-hidden interactive-card border border-white/5 hover:border-secondary/50 transition-all duration-500 shadow-xl {{ $key >= 12 ? 'hidden extra-item' : '' }}">
+                            <img alt="{{ $category->nama }}"
+                                src="{{ str_contains($category->thumbnail, 'http') ? $category->thumbnail : (file_exists(public_path($category->thumbnail)) ? asset($category->thumbnail) : asset('assets/thumbnail/default.png')) }}"
+                                onerror="this.src='{{ asset('assets/thumbnail/default.png') }}'; this.onerror=null;"
+                                class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                            <div
+                                class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent flex flex-col justify-end p-2 sm:p-4">
+                                <h4
+                                    class="font-black text-[10px] sm:text-xs text-white uppercase text-center leading-tight drop-shadow-lg group-hover:text-secondary transition-colors">
+                                    {{ $category->nama }}</h4>
+                            </div>
+                        </a>
+
+                        {{-- Desktop View --}}
+                        <a href="{{ url('/id/' . $category->kode) }}"
+                            class="hidden md:flex flex-col group bg-slate-800/30 rounded-3xl overflow-hidden interactive-card border border-white/5 hover:border-secondary/40 transition-all {{ $key >= 12 ? 'hidden extra-item' : '' }}">
+                            <div class="aspect-square overflow-hidden relative">
+                                <img alt="{{ $category->nama }}"
+                                    src="{{ str_contains($category->thumbnail, 'http') ? $category->thumbnail : (file_exists(public_path($category->thumbnail)) ? asset($category->thumbnail) : asset('assets/thumbnail/default.png')) }}"
+                                    onerror="this.src='{{ asset('assets/thumbnail/default.png') }}'; this.onerror=null;"
                                     class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                             </div>
                             <div class="p-4 text-center">
