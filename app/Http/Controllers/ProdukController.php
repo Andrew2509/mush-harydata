@@ -19,12 +19,8 @@ class ProdukController extends Controller
     {
         try {
             $pricelist = Cache::remember('digiflazz_pricelist_cache', 600, function () {
-                $digi = new DigiFlazzController;
-                $data = $digi->harga();
-                if ($data && isset($data['data']) && is_array($data['data']) && isset($data['data'][0])) {
-                    return $data['data'];
-                }
-                return null;
+                $data = $this->getFullDigiflazzPricelist();
+                return !empty($data) ? $data : null;
             });
         } catch (\Exception $e) {
             $pricelist = null;
@@ -324,29 +320,15 @@ class ProdukController extends Controller
     public function sync(Request $request)
     {
         try {
-            $digi = new DigiFlazzController();
-            
-            // 1. Ambil data prepaid
-            $dataPrepaid = $digi->harga(); // cmd => prepaid
-            
-            // 2. Ambil data postpaid (pasca)
-            $apiSetting = DB::table('setting_webs')->where('id', 1)->first();
-            $signPasca = md5($apiSetting->username_digi . $apiSetting->api_key_digi . "pricelist");
-            $dataPostpaid = $digi->connect('/v1/price-list', [
-                'cmd' => 'pasca',
-                'username' => $apiSetting->username_digi,
-                'sign' => $signPasca
-            ]);
-
-            $pricelist = [];
-            if (isset($dataPrepaid['data']) && is_array($dataPrepaid['data'])) {
-                $pricelist = array_merge($pricelist, $dataPrepaid['data']);
-            }
-            if (isset($dataPostpaid['data']) && is_array($dataPostpaid['data'])) {
-                $pricelist = array_merge($pricelist, $dataPostpaid['data']);
-            }
+            $pricelist = $this->getFullDigiflazzPricelist();
 
             if (empty($pricelist)) {
+                if (app()->runningInConsole()) {
+                    return [
+                        'success' => false,
+                        'message' => 'Gagal mengambil data pricelist dari API Digiflazz (Prepaid & Pasca kosong).'
+                    ];
+                }
                 return back()->with('error', 'Gagal mengambil data pricelist dari API Digiflazz (Prepaid & Pasca kosong).');
             }
 
@@ -509,12 +491,8 @@ public function syncAllDigiflazz(Request $request)
 
     try {
         $pricelist = Cache::remember('digiflazz_pricelist_cache', 600, function () {
-            $digi = new DigiFlazzController();
-            $data = $digi->harga();
-            if ($data && isset($data['data']) && is_array($data['data']) && isset($data['data'][0])) {
-                return $data['data'];
-            }
-            return null;
+            $data = $this->getFullDigiflazzPricelist();
+            return !empty($data) ? $data : null;
         });
 
         if (!$pricelist) {
@@ -796,5 +774,35 @@ public function patch(Request $request, $id)
         }
 
         return '/assets/thumbnail/default.png';
+    }
+
+    private function getFullDigiflazzPricelist()
+    {
+        $digi = new DigiFlazzController();
+        $apiSetting = DB::table('setting_webs')->where('id', 1)->first();
+        if (!$apiSetting) {
+            return [];
+        }
+
+        // Fetch prepaid
+        $dataPrepaid = $digi->harga();
+
+        // Fetch postpaid
+        $signPasca = md5($apiSetting->username_digi . $apiSetting->api_key_digi . "pricelist");
+        $dataPostpaid = $digi->connect('/v1/price-list', [
+            'cmd' => 'pasca',
+            'username' => $apiSetting->username_digi,
+            'sign' => $signPasca
+        ]);
+
+        $pricelist = [];
+        if (isset($dataPrepaid['data']) && is_array($dataPrepaid['data'])) {
+            $pricelist = array_merge($pricelist, $dataPrepaid['data']);
+        }
+        if (isset($dataPostpaid['data']) && is_array($dataPostpaid['data'])) {
+            $pricelist = array_merge($pricelist, $dataPostpaid['data']);
+        }
+
+        return $pricelist;
     }
 }
