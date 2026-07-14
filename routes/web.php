@@ -184,6 +184,33 @@ Route::middleware(['auth', 'check.role'])->group(function () {
     
     Route::prefix('digiflazz')->middleware(['auth', 'check.role'])->group(function () {
     Route::get('/produk',                                                        [DigiflazzdashboardController::class, 'harga'])->name('digiflazz.prices');
+    // DEBUG ROUTE - hapus setelah masalah terselesaikan
+    Route::get('/debug-api', function () {
+        $api = DB::table('setting_webs')->where('id', 1)->first();
+        if (!$api) {
+            return response()->json(['error' => 'setting_webs id=1 tidak ditemukan di database']);
+        }
+        $sign = md5($api->username_digi . $api->api_key_digi . "pricelist");
+        $responsePrepaid = \Illuminate\Support\Facades\Http::withHeaders(['Content-Type' => 'application/json'])
+            ->post('https://api.digiflazz.com/v1/price-list', [
+                'cmd' => 'prepaid',
+                'username' => $api->username_digi,
+                'sign' => $sign
+            ]);
+        $dataPrepaid = $responsePrepaid->json();
+        $jumlahPrepaid = isset($dataPrepaid['data']) && is_array($dataPrepaid['data']) ? count($dataPrepaid['data']) : 0;
+
+        return response()->json([
+            'credentials' => [
+                'username_digi' => $api->username_digi ?? null,
+                'api_key_digi_length' => strlen($api->api_key_digi ?? ''),
+            ],
+            'prepaid_response_status' => $responsePrepaid->status(),
+            'prepaid_total_produk' => $jumlahPrepaid,
+            'prepaid_sample_3' => $jumlahPrepaid > 0 ? array_slice($dataPrepaid['data'], 0, 3) : null,
+            'prepaid_error' => $jumlahPrepaid === 0 ? ($dataPrepaid['data']['message'] ?? $dataPrepaid['message'] ?? $dataPrepaid) : null,
+        ]);
+    })->name('digiflazz.debug');
 });
 
     Route::get('/berita',                                                        [Berita::class, 'create'])->name('berita');
