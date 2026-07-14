@@ -5,6 +5,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 
 class DigiflazzdashboardController extends Controller
 {
@@ -47,16 +48,28 @@ class DigiflazzdashboardController extends Controller
     public function harga()
     {
         try {
-            $sign = md5($this->username_digi . $this->api . 'pricelist');
-            $data = $this->connect('/v1/price-list', [
-                'sign' => $sign
-            ]);
-            
-            // Cek apakah data berupa list produk (bukan error object dengan rc/message)
-            if (isset($data['data']) && is_array($data['data']) && isset($data['data'][0])) {
-                return view('admin.digiflazz.harga', ['data' => $data['data']]);
-            } else {
+            // Coba ambil dari Cache selama 10 menit (600 detik)
+            $cachedData = Cache::remember('digiflazz_pricelist_cache', 600, function () {
+                $sign = md5($this->username_digi . $this->api . 'pricelist');
+                $data = $this->connect('/v1/price-list', [
+                    'sign' => $sign
+                ]);
+                
+                // Jika sukses, kembalikan data produk. Jika error, kembalikan null agar tidak masuk cache
+                if (isset($data['data']) && is_array($data['data']) && isset($data['data'][0])) {
+                    return $data['data'];
+                }
+                
+                // Simpan pesan error ke session flash agar bisa ditampilkan sekali
                 $errorMsg = $data['data']['message'] ?? $data['message'] ?? 'Gagal mengambil pricelist';
+                session()->flash('digiflazz_error', $errorMsg);
+                return null;
+            });
+
+            if ($cachedData !== null) {
+                return view('admin.digiflazz.harga', ['data' => $cachedData]);
+            } else {
+                $errorMsg = session('digiflazz_error') ?? 'Gagal mengambil pricelist (Limit/API Error)';
                 return view('admin.digiflazz.harga', ['error' => $errorMsg]);
             }
         } catch (\Exception $e) {
