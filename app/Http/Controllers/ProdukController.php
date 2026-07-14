@@ -257,7 +257,7 @@ class ProdukController extends Controller
                             $tipe = 'game';
                             $categoryLower = strtolower($product['category'] ?? '');
                             if (str_contains($categoryLower, 'e-money') || str_contains($categoryLower, 'emoney') || str_contains($categoryLower, 'saldo')) {
-                                $tipe = 'e-money';
+                                $tipe = 'pulsa';
                             } elseif (str_contains($categoryLower, 'voucher')) {
                                 $tipe = 'voucher';
                             } elseif (str_contains($categoryLower, 'pulsa') || str_contains($categoryLower, 'data') || str_contains($categoryLower, 'paket') || str_contains($categoryLower, 'pln') || str_contains($categoryLower, 'token')) {
@@ -276,12 +276,12 @@ class ProdukController extends Controller
                             $dataGames->banner = '/assets/banner_game/default.png';
                             $dataGames->status = 'active';
                             $dataGames->deskripsi_game = 'Topup ' . $product['brand'] . ' instan 24 jam aman.';
-                            $dataGames->deskripsi_field = 'Masukkan User ID Anda.';
+                            $dataGames->deskripsi_field = 'Masukkan nomor HP atau ID target Anda.';
                             $dataGames->save();
 
                             DB::table('custom_inputs')->insert([
                                 'kategori_id' => $dataGames->id,
-                                'field_1' => 'User ID,id,number',
+                                'field_1' => 'Target ID / No HP,id,number',
                                 'field_2' => null,
                                 'field_select_title' => null,
                                 'field_select' => null,
@@ -390,7 +390,7 @@ public function syncAllDigiflazz(Request $request)
                 $tipe = 'game';
                 $categoryLower = strtolower($product['category'] ?? '');
                 if (str_contains($categoryLower, 'e-money') || str_contains($categoryLower, 'emoney') || str_contains($categoryLower, 'saldo')) {
-                    $tipe = 'e-money';
+                    $tipe = 'pulsa';
                 } elseif (str_contains($categoryLower, 'voucher')) {
                     $tipe = 'voucher';
                 } elseif (str_contains($categoryLower, 'pulsa') || str_contains($categoryLower, 'data') || str_contains($categoryLower, 'paket') || str_contains($categoryLower, 'pln') || str_contains($categoryLower, 'token')) {
@@ -409,12 +409,12 @@ public function syncAllDigiflazz(Request $request)
                 $dataGames->banner = '/assets/banner_game/default.png';
                 $dataGames->status = 'active';
                 $dataGames->deskripsi_game = 'Topup ' . $product['brand'] . ' instan 24 jam aman.';
-                $dataGames->deskripsi_field = 'Masukkan User ID Anda.';
+                $dataGames->deskripsi_field = 'Masukkan nomor HP atau ID target Anda.';
                 $dataGames->save();
 
                 DB::table('custom_inputs')->insert([
                     'kategori_id' => $dataGames->id,
-                    'field_1' => 'User ID,id,number',
+                    'field_1' => 'Target ID / No HP,id,number',
                     'field_2' => null,
                     'field_select_title' => null,
                     'field_select' => null,

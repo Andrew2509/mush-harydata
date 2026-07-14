@@ -339,32 +339,63 @@ public function detail($id)
     {
         try {
             $digi = new DigiFlazzController();
-            $data = $digi->harga();
+            
+            // 1. Ambil data prepaid
+            $dataPrepaid = $digi->harga(); // cmd => prepaid
+            
+            // 2. Ambil data postpaid (pasca)
+            $apiSetting = DB::table('setting_webs')->where('id', 1)->first();
+            $signPasca = md5($apiSetting->username_digi . $apiSetting->api_key_digi . "pricelist");
+            $dataPostpaid = $digi->connect('/v1/price-list', [
+                'cmd' => 'pasca',
+                'username' => $apiSetting->username_digi,
+                'sign' => $signPasca
+            ]);
 
-            if (!$data || !isset($data['data']) || !is_array($data['data']) || !isset($data['data'][0])) {
-                $errorMsg = $data['data']['message'] ?? $data['message'] ?? 'Gagal mengambil data dari API Digiflazz.';
-                return back()->with('error', 'API Digiflazz Error: ' . $errorMsg);
+            $uniqueBrands = [];
+
+            // Parse Prepaid
+            if (isset($dataPrepaid['data']) && is_array($dataPrepaid['data'])) {
+                foreach ($dataPrepaid['data'] as $product) {
+                    if (empty($product['brand'])) {
+                        continue;
+                    }
+                    $brandName = trim($product['brand']);
+                    $categoryName = trim($product['category'] ?? '');
+                    if (!isset($uniqueBrands[$brandName])) {
+                        $uniqueBrands[$brandName] = [
+                            'category' => $categoryName,
+                            'mode' => 'prepaid'
+                        ];
+                    }
+                }
+            }
+
+            // Parse Postpaid (Pasca)
+            if (isset($dataPostpaid['data']) && is_array($dataPostpaid['data'])) {
+                foreach ($dataPostpaid['data'] as $product) {
+                    if (empty($product['brand'])) {
+                        continue;
+                    }
+                    $brandName = trim($product['brand']);
+                    $categoryName = trim($product['category'] ?? '');
+                    if (!isset($uniqueBrands[$brandName])) {
+                        $uniqueBrands[$brandName] = [
+                            'category' => $categoryName,
+                            'mode' => 'pasca'
+                        ];
+                    }
+                }
+            }
+
+            if (empty($uniqueBrands)) {
+                return back()->with('error', 'Gagal mengambil data pricelist dari API Digiflazz (Prepaid & Pasca kosong).');
             }
 
             $addedCount = 0;
             $skippedCount = 0;
 
-            // Kumpulkan brand-brand unik dan kategorinya dari pricelist
-            $uniqueBrands = [];
-            foreach ($data['data'] as $product) {
-                if (empty($product['brand'])) {
-                    continue;
-                }
-                
-                $brandName = trim($product['brand']);
-                $categoryName = trim($product['category'] ?? '');
-
-                if (!isset($uniqueBrands[$brandName])) {
-                    $uniqueBrands[$brandName] = $categoryName;
-                }
-            }
-
-            foreach ($uniqueBrands as $brand => $category) {
+            foreach ($uniqueBrands as $brand => $info) {
                 $slug = Str::slug($brand);
 
                 // Cek apakah kategori sudah ada berdasarkan nama atau kode (slug)
@@ -379,16 +410,20 @@ public function detail($id)
 
                 // Tebak tipe kategori
                 $tipe = 'game'; // default
-                $categoryLower = strtolower($category);
+                $categoryLower = strtolower($info['category']);
                 
-                if (str_contains($categoryLower, 'e-money') || str_contains($categoryLower, 'emoney') || str_contains($categoryLower, 'saldo')) {
-                    $tipe = 'e-money';
-                } elseif (str_contains($categoryLower, 'voucher')) {
-                    $tipe = 'voucher';
-                } elseif (str_contains($categoryLower, 'pulsa') || str_contains($categoryLower, 'data') || str_contains($categoryLower, 'paket') || str_contains($categoryLower, 'pln') || str_contains($categoryLower, 'token')) {
-                    $tipe = 'pulsa';
-                } elseif (str_contains($categoryLower, 'app') || str_contains($categoryLower, 'premium') || str_contains($categoryLower, 'streaming')) {
-                    $tipe = 'app';
+                if ($info['mode'] === 'pasca') {
+                    $tipe = 'pulsa'; 
+                } else {
+                    if (str_contains($categoryLower, 'e-money') || str_contains($categoryLower, 'emoney') || str_contains($categoryLower, 'saldo')) {
+                        $tipe = 'pulsa'; // Map to pulsa so it uses custom_inputs correctly!
+                    } elseif (str_contains($categoryLower, 'voucher')) {
+                        $tipe = 'voucher';
+                    } elseif (str_contains($categoryLower, 'pulsa') || str_contains($categoryLower, 'data') || str_contains($categoryLower, 'paket') || str_contains($categoryLower, 'pln') || str_contains($categoryLower, 'token')) {
+                        $tipe = 'pulsa';
+                    } elseif (str_contains($categoryLower, 'app') || str_contains($categoryLower, 'premium') || str_contains($categoryLower, 'streaming')) {
+                        $tipe = 'app';
+                    }
                 }
 
                 // Tambahkan kategori baru
@@ -402,13 +437,13 @@ public function detail($id)
                 $kategori->banner = '/assets/banner_game/default.png'; // default placeholder
                 $kategori->status = 'active';
                 $kategori->deskripsi_game = 'Topup ' . $brand . ' instan 24 jam aman dan terpercaya.';
-                $kategori->deskripsi_field = 'Masukkan User ID Anda.';
+                $kategori->deskripsi_field = 'Masukkan nomor HP atau ID target Anda.';
                 $kategori->save();
 
                 // Tambahkan custom input default (User ID)
                 DB::table('custom_inputs')->insert([
                     'kategori_id' => $kategori->id,
-                    'field_1' => 'User ID,id,number', // title, placeholder/name, type
+                    'field_1' => 'Target ID / No HP,id,number', // title, placeholder/name, type
                     'field_2' => null,
                     'field_select_title' => null,
                     'field_select' => null,
